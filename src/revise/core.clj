@@ -11,7 +11,7 @@
 
 (def version-frame (compile-frame {:a :int32-le}))
 (defn gen-ver [val]
-  (contiguous (encode version-frame {:a val})))
+  (.array (contiguous (encode version-frame {:a val}))))
 
 (def VersionDummy (protodef Rethinkdb$VersionDummy))
 
