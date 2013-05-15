@@ -4,7 +4,7 @@
         [gloss.core]
         [gloss.io])
   (:import [java.net Socket]
-           [java.io PrintWriter InputStreamReader BufferedReader OutputStream])
+           [java.io InputStreamReader BufferedReader OutputStream])
   (:gen-class :main true))
 
 (import Rethinkdb$VersionDummy)
@@ -15,7 +15,7 @@
 
 (def VersionDummy (protodef Rethinkdb$VersionDummy))
 
-(def host {:name "localhost" :port 28015})
+(def db-host {:name "localhost" :port 28015})
 
 (def magic-number 1063369270)
 (def version (protobuf-dump (protobuf VersionDummy :Version magic-number)))
@@ -28,44 +28,26 @@
 (defn connect [server]
   (let [socket (Socket. (:name server) (:port server))
         in (BufferedReader. (InputStreamReader. (.getInputStream socket)))
-        out (PrintWriter. (.getOutputStream socket))
+        out (.getOutputStream socket)
         conn (ref {:in in :out out})]
     (doto (Thread. #(conn-handler conn)) (.start))
     conn))
 
-(defn write [conn msg]
-  ; (println (str "being sent: " msg))
+(defn write [conn data]
+  (println (str "outgoing: " data))
   (doto (:out @conn)
-    (.write msg)
+    (.write data)
     (.flush)))
 
 (defn conn-handler [conn]
   (while (nil? (:exit @conn))
-    (let [msg (.readLine (:in @conn))]
-      (when msg
-        (println msg)))))
+    (let [data (.readLine (:in @conn))]
+      (when data
+        (println data)))))
 
-;; (def rdb (connect host))
-
-(def sock (java.net.Socket. "localhost" 28015))
-
-(def write-stream (writer sock))
-(def read-stream  (reader sock))
-
-(defn read-loop []
-  (loop [buffer ""]
-    ;;(println (str "Looping.. -> " buffer))
-    (let [nbuf (parseMessage buffer)
-          nchr (.read read-stream)  ]
-      (if-not (= nchr -1)
-        (recur (str nbuf (char nchr)))))))
-
-(defn write-s [message]
-    (.write write-stream message)
-    (println (str "-> " message))
-    (.flush write-stream))
+(def db (connect db-host))
 
 (defn -main [& args]
   ;; (write rdb magic-number)
-  (write-s magic-number)
-  (read-loop))
+  (write db ver-frame)
+  (conn-handler db))
