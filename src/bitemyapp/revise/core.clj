@@ -4,7 +4,8 @@
         [gloss.core]
         [gloss.io])
   (:import [java.net Socket]
-           [java.io InputStreamReader BufferedReader OutputStream])
+           [java.io BufferedInputStream DataInputStream BufferedOutputStream]
+           [java.io InputStream InputStreamReader BufferedReader OutputStream])
   (:gen-class :main true))
 
 (import Rethinkdb$VersionDummy)
@@ -29,16 +30,19 @@
 
 (def db-host {:name "localhost" :port 28015})
 
-(defn pb [& args]
-  (protobuf args))
-(defn pbt [& args]
-  (pb Term args))
-(defn pbd [& args]
-  (pb Datum args))
+;; (defn pb [& args]
+;;   (protobuf args))
+;; (defn pbt [& args]
+;;   (pb Term args))
+;; (defn pbd [& args]
+;;   (pb Datum args))
+
+;; (defn list-databases []
+;;   (protobuf-dump
+;;    (pbt :type :DB_LIST)))
 
 (defn list-databases []
-  (protobuf-dump
-   (pbt :type :DB_LIST)))
+  (protobuf-dump (protobuf Term :type :DB_LIST)))
 
 (defn insert-example []
   (protobuf-dump
@@ -74,28 +78,23 @@
 ;; 0x3f61ba36
 
 (declare conn-handler)
+(declare db)
 
 (defn connect [server]
   (let [socket (Socket. (:name server) (:port server))
-        in (BufferedReader. (InputStreamReader. (.getInputStream socket)))
-        out (.getOutputStream socket)
+        in (DataInputStream. (BufferedInputStream. (.getInputStream socket)))
+        out (BufferedOutputStream. (.getOutputStream socket))
         conn (ref {:in in :out out})]
     (doto (Thread. #(conn-handler conn)) (.start))
     conn))
 
-(defn write [conn data]
-  (println (str "outgoing: " data))
-  (doto (:out @conn)
-    (.write data)
-    (.flush)))
-
-(def db (connect db-host))
-
-(defn conn-handler []
+(defn conn-handler [conn]
   (println "Conn handler started")
-  (while (nil? (:exit @db))
-    (let [data (.readLine (:in @db))]
+  (while (nil? (:exit @conn))
+    (let [data (.read (:in @conn))]
+      (println "let data")
       (when data
+        (println "when data")
         (let [pb (protobuf-load Response data)
               bpb (bean pb)]
           (println "data read in")
@@ -103,11 +102,17 @@
           (println pb)
           (println bpb))))))
 
+(defn write [conn data]
+  (println (str "outgoing: " data))
+  (doto (:out @conn)
+    (.write data)
+    (.flush)))
+
 (defn -main [& args]
   ;; (write rdb magic-number)
-  (println "pre-handler")
-  (.start (Thread. conn-handler))
-  (println "post-handler")
+  (println "pre ver frame")
+  ; (def db (connect db-host))
   (write db ver-frame)
   ;; (write db (insert-example))
+  (println "pre list databases")
   (write db (list-databases)))
