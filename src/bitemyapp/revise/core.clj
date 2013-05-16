@@ -1,4 +1,4 @@
-(ns revise.core
+(ns bitemyapp.revise.core
   (:use [clojure.java.io]
         [flatland.protobuf.core]
         [gloss.core]
