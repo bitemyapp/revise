@@ -1,6 +1,6 @@
-(ns revise.core-test
+(ns bitemyapp.revise.core-test
   (:use clojure.test
-        revise.core))
+        bitemyapp.revise.core))
 
 (deftest a-test
   (testing "FIXME, I fail."
