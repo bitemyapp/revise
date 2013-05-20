@@ -1,13 +1,14 @@
 # revise
 
-A Clojure library designed to ... well, that part is up to you.
+Clojure RethinkDB client (EXPERIMENTAL TEST HARNESS, DOESN'T DO
+ANYTHING YO)
 
 ## Usage
 
-FIXME
+Don't. Seriously. You'll know it if you're supposed to be here.
 
 ## License
 
-Copyright © 2013 FIXME
+Copyright © 2013 Chris Allen
 
 Distributed under the Eclipse Public License, the same as Clojure.
