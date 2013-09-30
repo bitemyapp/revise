@@ -8,4 +8,4 @@
                  [gloss "0.2.2-beta4"]
                  [javert "0.2.0-SNAPSHOT"]
                  [com.cemerick/pomegranate "0.2.0"]
-                 [org.flatland/protobuf "0.7.1"]])
+                 [org.flatland/protobuf "0.7.2"]])
