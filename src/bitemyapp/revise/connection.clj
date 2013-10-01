@@ -7,17 +7,9 @@
   (:require [flatland.protobuf.core :as pb]
             [bitemyapp.revise.utils.bytes :refer [to-little-endian-byte-32
                                                   parse-little-endian-32
-                                                  concat-byte-arrays]]))
-
-(import Rethinkdb$VersionDummy)
-(import Rethinkdb$Response)
-(import Rethinkdb$Query)
-(import Rethinkdb$Term)
-
-(def VersionDummy (pb/protodef Rethinkdb$VersionDummy))
-(def Query (pb/protodef Rethinkdb$Query))
-(def Response (pb/protodef Rethinkdb$Response))
-(def Term (pb/protodef Rethinkdb$Term))
+                                                  concat-byte-arrays]]
+            [bitemyapp.revise.protodefs :refer [Query]]
+            [bitemyapp.revise.response :refer [inflate]]))
 
 ;; Clearly not final implementation
 (defonce current-connection (atom nil))
@@ -91,7 +83,7 @@
                                              :token token
                                              :type type}))
       (swap! current-connection update-in [:token] inc)
-      (fetch-response in))))
+      (inflate (fetch-response in)))))
 
 (defn connect
   [& [conn-map]]
@@ -104,20 +96,22 @@
     (when current
       (close current))
     (try
-      (let [auth-key (:auth-key conn-map)
+      (let [token (:token conn-map)
+            auth-key (:auth-key conn-map)
             socket (Socket. (:host conn-map) (:port conn-map))
             out (DataOutputStream. (.getOutputStream socket))
             in  (DataInputStream. (.getInputStream socket))
             conn (reset! current-connection
                          {:socket socket
-                          :token 1
+                          :token token
                           ;; Data*Streams to send/receive bytes
                           :out out
                           :in in})]
         (send-version out)
         ;; todo
         (send-auth-key out auth-key)
-        (read-init-response in))
+        (println "When connecting:" (read-init-response in))
+        conn)
 
       (catch ConnectException e
         (println "Couldn't connect to" (str (:host conn-map)
