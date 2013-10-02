@@ -8,7 +8,7 @@
             [bitemyapp.revise.utils.bytes :refer [to-little-endian-byte-32
                                                   parse-little-endian-32
                                                   concat-byte-arrays]]
-            [bitemyapp.revise.protodefs :refer [Query]]
+            [bitemyapp.revise.protodefs :refer [Query Response]]
             [bitemyapp.revise.response :refer [inflate]]))
 
 ;; Clearly not final implementation

@@ -1,25 +1,24 @@
 (ns bitemyapp.revise.query
-  "Query functions"
+  "Query functions. Return query maps."
   (:require [flatland.protobuf.core :refer [protobuf]]
             [bitemyapp.revise.protodefs :refer [Datum Term]]))
 
-;; TODO - make these functions return actual maps. Then turn those maps into protobufs
-;; when executing
+(defn new-query
+  []
+  {:db nil
+   :table nil
+   :query-type nil
+   :options nil})
 
 (defn db
-  "Provides a reference to a db. Used as the first argument to some queries I guess."
-  [db]
-  (protobuf Term
-            :type :DB
-            :args [(protobuf Term
-                             :type :DATUM
-                             :datum (protobuf Datum
-                                              :type :R_STR
-                                              :r_str "test"))]))
+  [q name]
+  (merge q {:db name}))
+
+(defn table
+  [q name]
+  (merge q {:table name}))
 
 (defn table-list
-  "The table list of the db"
-  [db]
-  (protobuf Term
-            :type :TABLE_LIST
-            :args [db]))
+  [q]
+  (merge q {:query-type :select
+            :options {:select-type :table-list}}))
