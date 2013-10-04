@@ -9,6 +9,7 @@
 (import Rethinkdb$Term)
 (import Rethinkdb$Backtrace)
 (import Rethinkdb$Frame)
+(import Rethinkdb$Term$AssocPair)
 
 (def VersionDummy (protodef Rethinkdb$VersionDummy))
 (def Response (protodef Rethinkdb$Response))
@@ -17,3 +18,4 @@
 (def Frame (protodef Rethinkdb$Frame))
 (def Backtrace (protodef Rethinkdb$Backtrace))
 (def Term (protodef Rethinkdb$Term))
+(def AssocPair (protodef Rethinkdb$Term$AssocPair))

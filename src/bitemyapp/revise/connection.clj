@@ -83,7 +83,8 @@
                                              :token token
                                              :type type}))
       (swap! current-connection update-in [:token] inc)
-      (inflate (fetch-response in)))))
+      (let [r (fetch-response in)]
+        (inflate r)))))
 
 (defn connect
   [& [conn-map]]

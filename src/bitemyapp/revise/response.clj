@@ -10,7 +10,7 @@
 (defmethod response
   :vec
   [v]
-  (mapcat response v))
+  (map response v))
 
 (defmethod response
   :r-array
@@ -21,6 +21,22 @@
   :r-str
   [m]
   (:r-str m))
+
+(defmethod response
+  :r-num
+  [m]
+  (:r-num m))
+
+(defmethod response
+  :r-bool
+  [m]
+  (:r-bool m))
+
+(defmethod response
+  :r-object
+  [m]
+  (zipmap (map (comp keyword :key) (:r-object m))
+          (map (comp response :val) (:r-object m))))
 
 (defmulti initial
   "Outer response"
@@ -33,19 +49,22 @@
 
 (defmethod initial :client-error
   [pb]
-  {:token (:token pb)
+  {:error :client-error
+   :token (:token pb)
    :response (response (:response pb))
    :backtrace (:backtrace pb)})
 
 (defmethod initial :runtime-error
   [pb]
-  {:token (:token pb)
+  {:error :runtime-error
+   :token (:token pb)
    :response (response (:response pb))
    :backtrace (:backtrace pb)})
 
 (defmethod initial :compile-error
   [pb]
-  {:token (:token pb)
+  {:error :compile-error
+   :token (:token pb)
    :response (response (:response pb))
    :backtrace (:backtrace pb)})
 

@@ -20,5 +20,21 @@
 
 (defn table-list
   [q]
-  (merge q {:query-type :select
-            :options {:select-type :table-list}}))
+  (merge q {:query-type :table-list}))
+
+(defn table-create
+  [q name & [options]]
+  (let [default-options {:primary-key :id
+                         :durability :hard
+                         :cache-size 1073741824
+                         :datacenter nil}
+        options (merge default-options options)]
+
+    (merge q {:query-type :table-create
+              :options options
+              :table name})))
+
+(defn table-drop
+  [q name]
+  (merge q {:query-type :table-drop
+            :table name}))
