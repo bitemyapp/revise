@@ -9,6 +9,8 @@
           :seq
           (number? x)
           :number
+          (vector? x)
+          :vec
           (string? x)
           :str
           (or (false? x) (true? x))
@@ -20,6 +22,11 @@
   [_ n]
   {:type :number
    :value n})
+
+(defmethod parse-thing :vec
+  [indexed-args v]
+  {:type :array
+   :contents (mapv (partial parse-thing index-args) v)})
 
 (defmethod parse-thing :str
   [_ s]
@@ -44,23 +51,39 @@
   [indexed-args l]
   (parse-sexpr indexed-args l))
 
-(def dsl
-  '{< :lt
-    <= :le
-    > :gt
-    >= :ge
-
-    + :add
-    - :sub
-    / :div
-    * :mul
-
-    or :or
-    and :and})
+(def dsl-symbols
+  '#{;; Comparison
+     < <= > >= = not=
+     ;; Numeric
+     + - / * mod not
+     ;; Queries
+     contains? has-fields? with-fields keys
+     ;; Sequence operations
+     pluck without do default update replace delete
+     ;; Type inspection
+     coerce-to type merge append prepend difference
+     ;; Set operations
+     set-insert set-union set-insert set-union set-intersection set-difference
+     ;; Access
+     get get-in nth match empty? indexes-of slice skip limit between distinct
+     ;; HOFs
+     reduce map filter concat-map order-by group-by for-each
+     ;; Result operations
+     count union inner-join outer-join eq-join zip grouped-map-reduce info
+     ;; Array operations
+     insert-at splice-at delete-at change-at sample
+     ;; Time
+     ->iso8601 ->epoch-time during date time-of-day timezone year month day
+     day-of-week day-of-year hours minutes seconds in-timezone
+     })
 
 (defn dsl-symbol?
   [s]
-  (contains? dsl s))
+  (boolean (dsl-symbols s)))
+
+(defmulti parse-sexpr
+  (fn [indexed-args [s & args]]
+    s))
 
 (defn parse-sexpr
   [indexed-args [s & args]]
