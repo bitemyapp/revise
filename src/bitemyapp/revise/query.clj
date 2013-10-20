@@ -56,6 +56,7 @@
         arg-replacements (index-args arglist)]
     {:type :lambda
      :arg-count (count arglist)
+     ;; TODO - not the best model of scope
      :ret (clojure.walk/postwalk-replace arg-replacements ret)}))
 
 ;;; -------------------------------------------------------------------------
@@ -513,12 +514,17 @@ Optargs: :datacenter str
                       (assoc optargs :primary_key (:primary-key optargs)))
             optargs (if (clojure.core/contains? :cache-size)
                       (assoc optargs :cache-size (:cache-size optargs)))
-            optargs (if (clojure.core/contains? :datacenter)
-                      (assoc optargs :datacenter (:datacenter optargs)))]
+            optargs (if (clojure.core/contains? :durability)
+                      (assoc optargs :durability (:durability optargs)))]
         (query :TABLE_CREATE [tname] optargs)))))
 
 (defn table-create-db
-  "Creates a table with a particular name in a particular database"
+  "Creates a table with a particular name in a particular database
+
+Optargs: :datacenter str
+         :primary-key str
+         :cache-size number
+         :durability str"
   [db tname & {:as optargs}]
   (let [tname (name tname)]
     (if-not optargs
@@ -530,8 +536,8 @@ Optargs: :datacenter str
                       (assoc optargs :primary_key (:primary-key optargs)))
             optargs (if (clojure.core/contains? :cache-size)
                       (assoc optargs :cache-size (:cache-size optargs)))
-            optargs (if (clojure.core/contains? :datacenter)
-                      (assoc optargs :datacenter (:datacenter optargs)))]
+            optargs (if (clojure.core/contains? :durability)
+                      (assoc optargs :durability (:durability optargs)))]
         (query :TABLE_CREATE [db tname] optargs)))))
 
 (defn table-drop
