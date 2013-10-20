@@ -2,57 +2,6 @@
   "The clojure REQL API")
 
 ;;; -------------------------------------------------------------------------
-;;; Base
-(defn new-query
-  []
-  {:type nil
-   :database nil
-   :args nil
-   :optargs nil
-   :table nil
-   :datum nil})
-
-(defn create-query
-  [q]
-  (merge q (new-query)))
-
-(defn add-queries
-  [q1 q2]
-  (merge q1 q2))
-
-(defmacro defquery
-  "Takes a defn with args [q .. args] and produces a defn body with 2 arities,
-the original and another one with no q, which is defaulted to (new-query)"
-  [sym & tail]
-  (let [m {:dstring nil
-           :bindings nil
-           :body nil}
-        has-dstring? (string? (first tail))
-        m (if has-dstring?
-            (assoc m
-              :dstring (first tail)
-              :bindings (second tail)
-              :body (nnext tail))
-            (assoc m
-              :bindings (first tail)
-              :body (next tail)))
-        dstring (:dstring m)
-        defnhead (if dstring
-                   `(defn ~sym ~dstring)
-                   `(defn ~sym))
-        binds (:bindings m)
-        binds-1 (vec (rest (:bindings m)))
-        body (:body m)]
-    `(~@defnhead
-       (~binds-1 (~sym (new-query) ~@binds-1))
-       (~binds ~@body))))
-
-(defn map-keys
-  [f m]
-  (zipmap (keys m)
-          (map f (vals m))))
-
-;;; -------------------------------------------------------------------------
 ;;; DatumTypes parsing
 
 (defn parse-val
@@ -72,6 +21,11 @@ the original and another one with no q, which is defaulted to (new-query)"
 
 ;;; -------------------------------------------------------------------------
 ;;; General stuff
+
+(defn map-keys
+  [f m]
+  (zipmap (keys m)
+          (map f (vals m))))
 
 (defn query
   ([type]
