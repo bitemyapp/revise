@@ -2,42 +2,58 @@
   "The clojure REQL API")
 
 ;;; -------------------------------------------------------------------------
-;;; DatumTypes parsing
-
-(defn parse-val
-  [x]
-  (letfn [(dt-map [t val]
-            {:type t
-             :value val})]
-    (if (and (map? x) (= :var (:type x)))
-      x
-      (-> (cond (string? x) :R_STR
-                (number? x) :R_NUM
-                (nil? x) :R_NULL
-                (vector? x) :R_ARRAY
-                (and (map? x) (= :obj (:type x))) :R_OBJECT
-                (or (false? x) (true? x)) :R_BOOL)
-          (dt-map x)))))
-
-;;; -------------------------------------------------------------------------
-;;; General stuff
+;;; Utils
 
 (defn map-keys
   [f m]
   (zipmap (keys m)
           (map f (vals m))))
 
+;;; -------------------------------------------------------------------------
+;;; DatumTypes parsing
+
+;;; TODO - difference between optargs and objs
+;;; Also difference between args and array?
+(defn parse-val
+  [x]
+  (letfn [(dt-map [t val]
+            (cond
+             (= :R_ARRAY t)
+             {:type t
+              :value (mapv parse-val val)}
+             (= :R_OBJECT t)
+             {:type t
+              :value (mapv (fn [[k v]]
+                             {:key (name k)
+                              :val (parse-val v)})
+                           val)}
+             :else
+             {:type t
+              :value val}))]
+    (if (and (map? x) (:type x))
+      x
+      (-> (cond (string? x) :R_STR
+                (number? x) :R_NUM
+                (nil? x) :R_NULL
+                (vector? x) :R_ARRAY
+                (and (map? x)
+                     (not (:type x))) :R_OBJECT
+                (or (false? x) (true? x)) :R_BOOL)
+          (dt-map x)))))
+
+;;; -------------------------------------------------------------------------
+;;; General stuff
+
 (defn query
   ([type]
      {:type type})
   ([type args]
      {:type type
-      :args (parse-val (mapv parse-val args))})
+      :args (parse-val (vec args))})
   ([type args optargs-map]
      {:type type
-      :args (parse-val (mapv parse-val args))
-      :optargs (parse-val (assoc (map-keys parse-val optargs-map)
-                            :type :obj))}))
+      :args (parse-val (vec args))
+      :optargs (parse-val optargs-map)}))
 
 ;;; -------------------------------------------------------------------------
 ;;; Lambdas
