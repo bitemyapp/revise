@@ -629,3 +629,141 @@ Optarg: multi -> bool"
 terms that function returns"
   [sq lambda1]
   (query :FOREACH [sq lambda1]))
+
+;;; -- Special Ops --
+;;; todo
+(defn asc
+  [wat])
+
+(defn desc
+  [wat])
+
+(defn info
+  "Gets info about anything. INFO is most commonly called on tables"
+  [x]
+  (query :INFO [x]))
+
+(defn match
+  "(match a b) returns a match object if the string \"a\" matches the regexp #\"b\""
+  [s re]
+  (query :MATCH [s (str re)]))
+
+(defn sample
+  "Select a number of elements from sequence with uniform distribution"
+  [sq n]
+  (query :SAMPLE [sq n]))
+
+(defn default
+  "Evaluates its first argument. If that argument returns NULL or throws an error
+related to the absence of an expected value, default will either return its
+second argument or execute it if it's a function. If the second argument is a
+function it will be passed either the text of the error or NULL as its argument"
+  [to-check lambda1-or-x]
+  (query :DEFAULT [to-check lambda1-or-x]))
+
+(defn json
+  "Parses its first argument as a json string and returns it as a datum"
+  [s]
+  (query :JSON [s]))
+
+;;; -- Date/Time Ops --
+
+(defn iso8601
+  "Parses its first arguments as an ISO 8601 time and returns it as a datum"
+  [s]
+  (query :ISO8601 [s]))
+
+(defn ->iso8601
+  "Prints a time as an ISO 8601 time"
+  [t]
+  (query :TO_ISO8601 [t]))
+
+(defn epoch-time
+  "Returns a time given seconds since epoch in UTC"
+  [n]
+  (query :EPOCH_TIME [n]))
+
+(defn ->epoch-time
+  "Returns seconds since epoch in UTC given a time"
+  [t]
+  (query :TO_EPOCH_TIME [t]))
+
+(defn now
+  "The time the query was received by the server"
+  [t]
+  (query :NOW [t]))
+
+(defn in-timezone
+  "Puts a time into an ISO 8601 timezone"
+  [t s]
+  (query :IN_TIMEZONE [t s]))
+
+(defn during
+  "(during a b c) returns whether a is in the range [b, c)
+a b and c are times"
+  [a b c]
+  (query :DURING [a b c]))
+
+(defn date
+  "Retrieves the date portion of a time"
+  [t]
+  (query :DATE [t]))
+
+(defn time-of-day
+  "(time-of-day x) == (- (date x) x)"
+  [t]
+  (query :TIME_OF_DAY [t]))
+
+;;; -- Accessing time components --
+(defn year
+  [t]
+  (query :YEAR [t]))
+
+(defn month
+  [t]
+  (query :MONTH [t]))
+
+(defn day
+  [t]
+  (query :DAY [t]))
+
+(defn day-of-week
+  [t]
+  (query :DAY_OF_WEEK [t]))
+
+(defn day-of-year
+  [t]
+  (query :DAY_OF_YEAR [t]))
+
+(defn hours
+  [t]
+  (query :HOURS [t]))
+
+(defn minutes
+  [t]
+  (query :MINUTES [t]))
+
+(defn seconds
+  [t]
+  (query :SECONDS [t]))
+
+;;; -- Date construction --
+;;; Todo - better arg names
+(defn time
+  "Construct a time from a date and optional timezone or a date+time and optional
+timezone"
+  ([n1 n2 n3]
+     (query :TIME [n1 n2 n3]))
+  ([n1 n2 n3 s]
+     (query :TIME [n1 n2 n3 s]))
+  ([n1 n2 n3 n4 n5 n6]
+     (query :TIME [n1 n2 n3 n4 n5 n6])))
+
+;;; -- Constants for ISO 8601 days of the week --
+;;; Todo - Wait how?
+
+;;; -- Bonus Term --
+(defn literal
+  "Indicates to MERGE to replace the other object rather than merge it"
+  [json]
+  (query :LITERAL [json]))
