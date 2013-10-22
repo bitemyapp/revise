@@ -12,8 +12,6 @@
 ;;; -------------------------------------------------------------------------
 ;;; DatumTypes parsing
 
-;;; TODO - difference between optargs and objs
-;;; Also difference between args and array?
 (defn parse-val
   [x]
   (letfn [(dt-map [t val]
