@@ -18,6 +18,9 @@
   [x]
   (letfn [(dt-map [t val]
             (cond
+             (= :R_STR t)
+             {:type t
+              :value (name val)}
              (= :R_ARRAY t)
              {:type t
               :value (mapv parse-val val)}
@@ -32,7 +35,7 @@
               :value val}))]
     (if (and (map? x) (:type x))
       x
-      (-> (cond (string? x) :R_STR
+      (-> (cond (or (keyword? x) (string? x)) :R_STR
                 (number? x) :R_NUM
                 (nil? x) :R_NULL
                 (vector? x) :R_ARRAY
@@ -49,11 +52,16 @@
      {:type type})
   ([type args]
      {:type type
-      :args (parse-val (vec args))})
+      :args {:type :args
+             :value (mapv parse-val args)}})
   ([type args optargs-map]
      {:type type
-      :args (parse-val (vec args))
-      :optargs (parse-val optargs-map)}))
+      :args {:type :args
+             :value (mapv parse-val args)}
+      :optargs {:type :optargs
+                :value
+                (zipmap (map name (keys optargs-map))
+                        (map parse-val (vals optargs-map)))}}))
 
 ;;; -------------------------------------------------------------------------
 ;;; Lambdas
@@ -76,17 +84,16 @@
      :ret (clojure.walk/postwalk-replace arg-replacements ret)}))
 
 ;;; -------------------------------------------------------------------------
-;;; Datums
+;;; Terms
 
 ;;; -- Compound types --
-;;; Confused by these 2
 (defn make-array
-  [datum]
-  (query :MAKE_ARRAY))
+  [& xs]
+  (query :MAKE_ARRAY xs))
 
 (defn make-obj
-  [m]
-  (query :MAKE_OBJ))
+  [& pairs]
+  (query :MAKE_OBJ pairs))
 
 (defn js
   ([s] (query :JAVASCRIPT [s]))

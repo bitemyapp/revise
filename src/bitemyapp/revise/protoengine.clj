@@ -1,8 +1,8 @@
 (ns bitemyapp.revise.protoengine
   "Turn query maps into protobufs"
   (:require [flatland.protobuf.core :refer [protobuf]]
-            [bitemyapp.revise.protodefs :refer [Datum Term AssocPair]]
-            [bitemyapp.revise.utils.case :refer [snake-case]])
+            [bitemyapp.revise.protodefs :refer [Datum Term AssocPair AssocPairTerm]]
+            [bitemyapp.revise.utils.case :refer [lower-case]])
   (:import [flatland.protobuf PersistentProtocolBufferMap]))
 
 (defn protobuf?
@@ -20,29 +20,71 @@
        (= :R_ARRAY t) :array
        (primitives t) :primitive
        (= :lambda t) :lambda
+       (= :args t) :args
        (= :optargs t) :optargs
-       (not (nil? t)) :op
-       :else (throw (Exception. "wat"))))))
+       (not (nil? t)) :op))))
+
+(defmethod compile :default
+  [_]
+  (throw (Exception. "wat")))
 
 (defmethod compile :primitive
   [{:keys [type value]}]
-  (protobuf Term
-            :type :DATUM
-            :datum (protobuf Datum
-                             :type type
-                             type value)))
+  (if (= :R_NULL type)
+    (protobuf Datum
+              :type :R_NULL)
+    (protobuf Datum
+              :type type
+              (lower-case type) value)))
+
+(defmethod compile :obj
+  [{:keys [type value]}]
+  (protobuf Datum
+            :type type
+            (lower-case type)
+            (mapv (fn [{:keys [key val]}]
+                    (protobuf AssocPair
+                              :key key
+                              :val (compile val)))
+                  value)))
+
+(defmethod compile :array
+  [{:keys [type value]}]
+  (protobuf Datum
+            :type type
+            (lower-case type) (mapv compile value)))
+
+(defmethod compile :args
+  [{:keys [type value]}]
+  (mapv (fn [v]
+          (protobuf Term
+                    :type :DATUM
+                    :datum (compile v)))
+        value))
 
 (defmethod compile :optargs
   [{:keys [type value]}]
-  (mapv (fn [{:keys [key val]}]
-          (protobuf AssocPair
-                    :key key
-                    :val (compile val)))))
+  (prn value)
+  (mapv (fn [[k v]]
+          (protobuf AssocPairTerm
+                    :key k
+                    :val (protobuf Term
+                                   :type :DATUM
+                                   :datum (compile v))))
+        value))
 
 (defmethod compile :op
   [{:keys [type args optargs]}]
-  (if optargs
-    (protobuf Term
-              :type type
-              :args (compile args)
-              :optargs (compile optargs))))
+  (cond
+   (and args optargs)
+   (protobuf Term
+             :type type
+             :args (compile args)
+             :optargs (compile optargs))
+   args
+   (protobuf Term
+             :type type
+             :args (compile args))
+   :else
+   (protobuf Term
+             :type type)))

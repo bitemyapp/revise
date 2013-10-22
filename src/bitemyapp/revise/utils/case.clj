@@ -23,3 +23,9 @@
   clojure.lang.Keyword
   (snake-case [k]
     (snake-case (name k))))
+
+(defn lower-case
+  [x]
+  (if (keyword? x)
+    (-> x (name) (s/lower-case) (keyword))
+    (-> x (s/lower-case))))
