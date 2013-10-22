@@ -71,17 +71,16 @@
   (zipmap lambda-args
           (map (fn [n]
                  {:type :var
-                  :number (inc n)})
+                  :number (parse-val (inc n))})
                (range))))
 
 (defmacro lambda
   [arglist & body]
   (let [ret (last body)
         arg-replacements (index-args arglist)]
-    {:type :lambda
-     :arg-count (count arglist)
-     ;; TODO - not the best model of scope
-     :ret (clojure.walk/postwalk-replace arg-replacements ret)}))
+    `(query :FUNC [(vec (map inc (range ~(count arglist))))
+                   ;; TODO - not the best model of scope
+                   ~(clojure.walk/postwalk-replace arg-replacements ret)])))
 
 ;;; -------------------------------------------------------------------------
 ;;; Terms
@@ -574,6 +573,16 @@ Optargs: :datacenter str
   [db tname]
   (let [tname (name tname)]
     (query :TABLE_DROP [db tname])))
+
+(defn table-list
+  "Lists all the tables in the default database"
+  []
+  (query :TABLE_LIST))
+
+(defn table-list-db
+  "Lists all the tables in a particular database"
+  [db]
+  (query :TABLE_LIST [db]))
 
 ;;; -- Secondary indexes Ops --
 (defn index-create

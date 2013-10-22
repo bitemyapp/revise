@@ -12,6 +12,9 @@
 (def primitives
   #{:R_STR :R_NUM :R_NULL :R_BOOL})
 
+(def datums
+  #{:R_STR :R_NUM :R_NULL :R_BOOL :R_ARRAY :R_OBJECT})
+
 (defmulti compile
   (fn [m]
     (let [t (:type m)]
@@ -19,13 +22,14 @@
        (= :R_OBJECT t) :obj
        (= :R_ARRAY t) :array
        (primitives t) :primitive
-       (= :lambda t) :lambda
+       (= :var t) :var
        (= :args t) :args
        (= :optargs t) :optargs
        (not (nil? t)) :op))))
 
 (defmethod compile :default
   [_]
+  (prn _)
   (throw (Exception. "wat")))
 
 (defmethod compile :primitive
@@ -54,12 +58,22 @@
             :type type
             (lower-case type) (mapv compile value)))
 
+(defmethod compile :var
+  [{:keys [type number]}]
+  (protobuf Term
+            :type :VAR
+            :args [(protobuf Term
+                             :type :DATUM
+                             :datum (compile number))]))
+
 (defmethod compile :args
   [{:keys [type value]}]
   (mapv (fn [v]
-          (protobuf Term
-                    :type :DATUM
-                    :datum (compile v)))
+          (if (datums (:type v))
+            (protobuf Term
+                      :type :DATUM
+                      :datum (compile v))
+            (compile v)))
         value))
 
 (defmethod compile :optargs
