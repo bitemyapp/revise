@@ -17,28 +17,28 @@
   (letfn [(dt-map [t val]
             (cond
              (= :R_STR t)
-             {:type t
-              :value (name val)}
+             {::type t
+              ::value (name val)}
              (= :R_ARRAY t)
-             {:type t
-              :value (mapv parse-val val)}
+             {::type t
+              ::value (mapv parse-val val)}
              (= :R_OBJECT t)
-             {:type t
-              :value (mapv (fn [[k v]]
+             {::type t
+              ::value (mapv (fn [[k v]]
                              {:key (name k)
                               :val (parse-val v)})
                            val)}
              :else
-             {:type t
-              :value val}))]
-    (if (and (map? x) (:type x))
+             {::type t
+              ::value val}))]
+    (if (and (map? x) (::type x))
       x
       (-> (cond (or (keyword? x) (string? x)) :R_STR
                 (number? x) :R_NUM
                 (nil? x) :R_NULL
                 (vector? x) :R_ARRAY
                 (and (map? x)
-                     (not (:type x))) :R_OBJECT
+                     (not (::type x))) :R_OBJECT
                 (or (false? x) (true? x)) :R_BOOL)
           (dt-map x)))))
 
@@ -47,17 +47,17 @@
 
 (defn query
   ([type]
-     {:type type})
+     {::type type})
   ([type args]
-     {:type type
-      :args {:type :args
-             :value (mapv parse-val args)}})
+     {::type type
+      ::args {::type :args
+              ::value (mapv parse-val args)}})
   ([type args optargs-map]
-     {:type type
-      :args {:type :args
-             :value (mapv parse-val args)}
-      :optargs {:type :optargs
-                :value
+     {::type type
+      ::args {::type :args
+              ::value (mapv parse-val args)}
+      ::optargs {::type :optargs
+                ::value
                 (zipmap (map name (keys optargs-map))
                         (map parse-val (vals optargs-map)))}}))
 
@@ -68,8 +68,8 @@
   [lambda-args]
   (zipmap lambda-args
           (map (fn [n]
-                 {:type :var
-                  :number (parse-val (inc n))})
+                 {::type :var
+                  ::number (parse-val (inc n))})
                (range))))
 
 (defmacro lambda

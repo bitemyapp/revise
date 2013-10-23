@@ -38,11 +38,21 @@
   (zipmap (map (comp keyword :key) (:r-object m))
           (map (comp response :val) (:r-object m))))
 
+(defmethod response
+  :r-null
+  [m]
+  nil)
+
 (defmulti initial
   "Outer response"
   :type)
 
 (defmethod initial :success-atom
+  [pb]
+  {:token (:token pb)
+   :response (response (:response pb))})
+
+(defmethod initial :success-sequence
   [pb]
   {:token (:token pb)
    :response (response (:response pb))})
@@ -67,6 +77,8 @@
    :token (:token pb)
    :response (response (:response pb))
    :backtrace (:backtrace pb)})
+
+
 
 (defn inflate
   "Deserialize the response protobuffer"

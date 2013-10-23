@@ -17,7 +17,7 @@
 
 (defmulti compile
   (fn [m]
-    (let [t (:type m)]
+    (let [t (:bitemyapp.revise.query/type m)]
       (cond
        (= :R_OBJECT t) :obj
        (= :R_ARRAY t) :array
@@ -29,11 +29,11 @@
 
 (defmethod compile :default
   [_]
-  (prn _)
   (throw (Exception. "wat")))
 
 (defmethod compile :primitive
-  [{:keys [type value]}]
+  [{type :bitemyapp.revise.query/type
+    value :bitemyapp.revise.query/value}]
   (if (= :R_NULL type)
     (protobuf Datum
               :type :R_NULL)
@@ -42,7 +42,8 @@
               (lower-case type) value)))
 
 (defmethod compile :obj
-  [{:keys [type value]}]
+  [{type :bitemyapp.revise.query/type
+    value :bitemyapp.revise.query/value}]
   (protobuf Datum
             :type type
             (lower-case type)
@@ -53,13 +54,15 @@
                   value)))
 
 (defmethod compile :array
-  [{:keys [type value]}]
+  [{type :bitemyapp.revise.query/type
+    value :bitemyapp.revise.query/value}]
   (protobuf Datum
             :type type
             (lower-case type) (mapv compile value)))
 
 (defmethod compile :var
-  [{:keys [type number]}]
+  [{type :bitemyapp.revise.query/type
+    number :bitemyapp.revise.query/number}]
   (protobuf Term
             :type :VAR
             :args [(protobuf Term
@@ -67,9 +70,10 @@
                              :datum (compile number))]))
 
 (defmethod compile :args
-  [{:keys [type value]}]
+  [{type :bitemyapp.revise.query/type
+    value :bitemyapp.revise.query/value}]
   (mapv (fn [v]
-          (if (datums (:type v))
+          (if (datums (:bitemyapp.revise.query/type v))
             (protobuf Term
                       :type :DATUM
                       :datum (compile v))
@@ -77,8 +81,8 @@
         value))
 
 (defmethod compile :optargs
-  [{:keys [type value]}]
-  (prn value)
+  [{type :bitemyapp.revise.query/type
+    value :bitemyapp.revise.query/value}]
   (mapv (fn [[k v]]
           (protobuf AssocPairTerm
                     :key k
@@ -88,7 +92,9 @@
         value))
 
 (defmethod compile :op
-  [{:keys [type args optargs]}]
+  [{type :bitemyapp.revise.query/type
+    args :bitemyapp.revise.query/args
+    optargs :bitemyapp.revise.query/optargs}]
   (cond
    (and args optargs)
    (protobuf Term
