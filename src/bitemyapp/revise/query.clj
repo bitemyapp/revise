@@ -12,6 +12,39 @@
 ;;; -------------------------------------------------------------------------
 ;;; DatumTypes parsing
 
+(defn datum?
+  [m]
+  (boolean
+   (#{:R_STR :R_NUM :R_NULL :R_BOOL :R_ARRAY :R_OBJECT} (::type m))))
+
+(declare parse-val make-obj query)
+
+(defn parse-map
+  "Decide if a map (not an optargs map) should be made with make-obj
+ (it has terms inside) or is a simple datum (primitive type)"
+  [m]
+  (let [vs (vals m)
+        vs (map parse-val vs)]
+    (if (any (map (comp not datum? ::type) vs))
+      (make-obj m)
+      {::type :R_OBJECT
+       ::value (mapv (fn [k v]
+                       {:key (name k)
+                        :val v})
+                     (keys m) vs)})))
+
+(defn parse-array
+  "Decide if an array (not an args array) should be made with make-array
+ (it has terms inside) or is a simple datum (primitive type)"
+  [sq]
+  (let [xs (mapv parse-val sq)]
+    (if (any (map (comp not datum? ::type) xs))
+      ;; Manual invocation of query
+      {::type :MAKE_ARRAY
+       ::value xs}
+      {::type :R_ARRAY
+       ::value xs})))
+
 (defn parse-val
   [x]
   (letfn [(dt-map [t val]
@@ -20,14 +53,9 @@
              {::type t
               ::value (name val)}
              (= :R_ARRAY t)
-             {::type t
-              ::value (mapv parse-val val)}
+             (parse-array val)
              (= :R_OBJECT t)
-             {::type t
-              ::value (mapv (fn [[k v]]
-                             {:key (name k)
-                              :val (parse-val v)})
-                           val)}
+             (parse-map val)
              :else
              {::type t
               ::value val}))]
@@ -48,10 +76,18 @@
 (defn query
   ([type]
      {::type type})
-  ([type args]
-     {::type type
-      ::args {::type :args
-              ::value (mapv parse-val args)}})
+  ([type args-or-optargs]
+     (if (map? args-or-optargs)
+       ;; Optargs
+       {::type type
+        ::optargs {::type :optargs
+                   ::value
+                   (zipmap (map name (keys args-or-optargs))
+                           (map parse-val (vals args-or-optargs)))}}
+       ;; args
+       {::type type
+        ::args {::type :args
+                ::value (mapv parse-val args-or-optargs)}}))
   ([type args optargs-map]
      {::type type
       ::args {::type :args
@@ -89,8 +125,10 @@
   (query :MAKE_ARRAY xs))
 
 (defn make-obj
-  [& pairs]
-  (query :MAKE_OBJ pairs))
+  "Takes a map and returns an object. Useful for making maps with terms inside
+such as the maps returned by lambdas passed as arguments to update."
+  [m]
+  (query :MAKE_OBJ m))
 
 (defn js
   ([s] (query :JAVASCRIPT [s]))
@@ -312,8 +350,8 @@ as if the default did not exist"
 ;;; TODO
 (defn order-by
   "Order a sequence based on one or more attributes"
-  [sq wat]
-  )
+  [sq & strs-or-orderings]
+  (query :ORDERBY (concat [sq] strs-or-orderings)))
 
 (defn distinct
   "Get all distinct elements of a sequence (like uniq)"
@@ -363,9 +401,8 @@ At present group-by supports the following operations
 - :count - count the size of the group
 - {:sum attr} - sum the values of the given attribute accross the group
 - {:avg attr} - average the values of the given attribute accross the group"
-  [sq array operation]
-  (let [operation (name operation)]
-    (query :GROUPBY [sq array operation])))
+  [sq array operation-obj]
+  (query :GROUPBY [sq array operation-obj]))
 
 (defn inner-join
   [sq1 sq2 lambda2]
@@ -378,10 +415,10 @@ At present group-by supports the following operations
 ;;; TODO
 (defn eq-join
   "An inner-join that does an equality comparison on two attributes"
-  ([sq1 x sq2]
-     (query :EQ_JOIN [sq1 x sq2]))
-  ([sq1 x sq2 index]
-     (query :EQ_JOIN [sq1 x sq2] {:index index})))
+  ([sq1 str sq2]
+     (query :EQ_JOIN [sq1 str sq2]))
+  ([sq1 str sq2 index]
+     (query :EQ_JOIN [sq1 str sq2] {:index index})))
 
 (defn zip
   [sq]
@@ -631,12 +668,15 @@ terms that function returns"
   (query :FOREACH [sq lambda1]))
 
 ;;; -- Special Ops --
-;;; todo
 (defn asc
-  [wat])
+  "Indicates to order-by that this attribute is to be sorted in ascending order"
+  [k]
+  (query :ASC [k]))
 
 (defn desc
-  [wat])
+  "Indicates to order-by that this attribute is to be sorted in descending order"
+  [k]
+  (query :DESC [k]))
 
 (defn info
   "Gets info about anything. INFO is most commonly called on tables"

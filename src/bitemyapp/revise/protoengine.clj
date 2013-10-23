@@ -86,9 +86,12 @@
   (mapv (fn [[k v]]
           (protobuf AssocPairTerm
                     :key k
-                    :val (protobuf Term
-                                   :type :DATUM
-                                   :datum (compile v))))
+                    :val
+                    (if (datums (:bitemyapp.revise.query/type v))
+                      (protobuf Term
+                                :type :DATUM
+                                :datum (compile v))
+                      (compile v))))
         value))
 
 (defmethod compile :op
@@ -105,6 +108,10 @@
    (protobuf Term
              :type type
              :args (compile args))
+   optargs
+   (protobuf Term
+             :type type
+             :optargs (compile optargs))
    :else
    (protobuf Term
              :type type)))
