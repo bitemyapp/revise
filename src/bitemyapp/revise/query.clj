@@ -76,26 +76,24 @@
 (defn query
   ([type]
      {::type type})
-  ([type args-or-optargs]
-     (if (map? args-or-optargs)
-       ;; Optargs
+  ([type args]
+     {::type type
+      ::args {::type :args
+              ::value (mapv parse-val args)}})
+  ([type args optargs-map]
+     (if (seq args)
+       {::type type
+        ::args {::type :args
+                ::value (mapv parse-val args)}
+        ::optargs {::type :optargs
+                   ::value
+                   (zipmap (map name (keys optargs-map))
+                           (map parse-val (vals optargs-map)))}}
        {::type type
         ::optargs {::type :optargs
                    ::value
-                   (zipmap (map name (keys args-or-optargs))
-                           (map parse-val (vals args-or-optargs)))}}
-       ;; args
-       {::type type
-        ::args {::type :args
-                ::value (mapv parse-val args-or-optargs)}}))
-  ([type args optargs-map]
-     {::type type
-      ::args {::type :args
-              ::value (mapv parse-val args)}
-      ::optargs {::type :optargs
-                ::value
-                (zipmap (map name (keys optargs-map))
-                        (map parse-val (vals optargs-map)))}}))
+                   (zipmap (map name (keys optargs-map))
+                           (map parse-val (vals optargs-map)))}})))
 
 ;;; -------------------------------------------------------------------------
 ;;; Lambdas
@@ -128,7 +126,7 @@
   "Takes a map and returns an object. Useful for making maps with terms inside
 such as the maps returned by lambdas passed as arguments to update."
   [m]
-  (query :MAKE_OBJ m))
+  (query :MAKE_OBJ nil m))
 
 (defn js
   ([s] (query :JAVASCRIPT [s]))
