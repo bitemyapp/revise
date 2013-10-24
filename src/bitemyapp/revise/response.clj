@@ -12,6 +12,12 @@
   [v]
   (map response v))
 
+;;; On null values, usually selecting an empty table?
+(defmethod response
+  :default
+  [x]
+  nil)
+
 (defmethod response
   :r-array
   [m]

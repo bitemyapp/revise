@@ -23,6 +23,7 @@
 ;;; The ten-minute guide
 (comment
   (connect)
+  (-> (r/db "test") (r/table-drop-db "authors") (run))
   ;; 1
   (-> (r/db "test") (r/table-create-db "authors") (run))
   ;; 2
@@ -68,14 +69,14 @@
                                (r/get-field row :name))))
       (r/update {:rank "Admiral"})
       (run))
-  ;; 9 What the hell
+  ;; 9
   (-> (r/table "authors")
       (r/filter (r/lambda [row]
                           (r/= "Jean-Luc Picard"
                                (r/get-field row :name))))
       (r/update
        (r/lambda [row]
-                 {:posts ;; can only merge messages of the same type
+                 {:posts
                   (r/append (r/get-field row :posts)
                             {:title "Shakespeare"
                              :content "What a piece of work is man.."})}))
@@ -88,6 +89,6 @@
       (r/delete)
       (run))
 
-  (-> (r/table "authors") (run))
+  (-> (r/db "test") (r/table-db "authors") (run))
 
   (close))

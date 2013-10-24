@@ -25,7 +25,7 @@
   [m]
   (let [vs (vals m)
         vs (map parse-val vs)]
-    (if (any (map (comp not datum? ::type) vs))
+    (if (some (complement datum?) vs)
       (make-obj m)
       {::type :R_OBJECT
        ::value (mapv (fn [k v]
@@ -38,7 +38,7 @@
  (it has terms inside) or is a simple datum (primitive type)"
   [sq]
   (let [xs (mapv parse-val sq)]
-    (if (any (map (comp not datum? ::type) xs))
+    (if (some (complement datum?) xs)
       ;; Manual invocation of query
       {::type :MAKE_ARRAY
        ::value xs}
