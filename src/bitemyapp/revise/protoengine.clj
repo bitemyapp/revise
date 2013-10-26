@@ -1,5 +1,6 @@
 (ns bitemyapp.revise.protoengine
   "Turn query maps into protobufs"
+  (:refer-clojure :exclude [compile])
   (:require [flatland.protobuf.core :refer [protobuf]]
             [bitemyapp.revise.protodefs :refer [Datum Term AssocPair AssocPairTerm]]
             [bitemyapp.revise.utils.case :refer [lower-case]])

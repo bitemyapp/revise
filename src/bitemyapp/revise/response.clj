@@ -28,10 +28,16 @@
   [m]
   (:r-str m))
 
+(defn ends-in-0 [n]
+  (contains? #{0.0 0} (mod n 1)))
+
+(defn maybe-int [n]
+  (or (and (ends-in-0 n) (int n)) n))
+
 (defmethod response
   :r-num
   [m]
-  (:r-num m))
+  (maybe-int (:r-num m)))
 
 (defmethod response
   :r-bool

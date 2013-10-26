@@ -1,16 +1,10 @@
 (ns bitemyapp.revise.query
-  "The clojure REQL API")
-
-;;; -------------------------------------------------------------------------
-;;; Utils
-
-(defn map-keys
-  [f m]
-  (zipmap (keys m)
-          (map f (vals m))))
-
-;;; -------------------------------------------------------------------------
-;;; DatumTypes parsing
+  "The clojure REQL API"
+  (:refer-clojure :exclude [make-array get = not= < <= > >=
+                            not + - * / mod contains? keys
+                            merge reduce map filter mapcat
+                            distinct count empty? nth
+                            group-by type replace time]))
 
 (defn datum?
   [m]
@@ -24,20 +18,21 @@
  (it has terms inside) or is a simple datum (primitive type)"
   [m]
   (let [vs (vals m)
-        vs (map parse-val vs)]
+        vs (clojure.core/map parse-val vs)]
     (if (some (complement datum?) vs)
       (make-obj m)
       {::type :R_OBJECT
-       ::value (mapv (fn [k v]
+       ::value (clojure.core/mapv (fn [k v]
                        {:key (name k)
                         :val v})
-                     (keys m) vs)})))
+                     ;; UUURRRRGH
+                     (clojure.core/keys m) vs)})))
 
 (defn parse-array
   "Decide if an array (not an args array) should be made with make-array
  (it has terms inside) or is a simple datum (primitive type)"
   [sq]
-  (let [xs (mapv parse-val sq)]
+  (let [xs (clojure.core/mapv parse-val sq)]
     (if (some (complement datum?) xs)
       ;; Manual invocation of query
       {::type :MAKE_ARRAY
@@ -49,24 +44,24 @@
   [x]
   (letfn [(dt-map [t val]
             (cond
-             (= :R_STR t)
+             (clojure.core/= :R_STR t)
              {::type t
               ::value (name val)}
-             (= :R_ARRAY t)
+             (clojure.core/= :R_ARRAY t)
              (parse-array val)
-             (= :R_OBJECT t)
+             (clojure.core/= :R_OBJECT t)
              (parse-map val)
              :else
              {::type t
               ::value val}))]
-    (if (and (map? x) (::type x))
+    (if (and (clojure.core/map? x) (::type x))
       x
       (-> (cond (or (keyword? x) (string? x)) :R_STR
                 (number? x) :R_NUM
                 (nil? x) :R_NULL
                 (vector? x) :R_ARRAY
-                (and (map? x)
-                     (not (::type x))) :R_OBJECT
+                (and (clojure.core/map? x)
+                     (clojure.core/not (::type x))) :R_OBJECT
                 (or (false? x) (true? x)) :R_BOOL)
           (dt-map x)))))
 
@@ -79,21 +74,21 @@
   ([type args]
      {::type type
       ::args {::type :args
-              ::value (mapv parse-val args)}})
+              ::value (clojure.core/mapv parse-val args)}})
   ([type args optargs-map]
      (if (seq args)
        {::type type
         ::args {::type :args
-                ::value (mapv parse-val args)}
+                ::value (clojure.core/mapv parse-val args)}
         ::optargs {::type :optargs
                    ::value
-                   (zipmap (map name (keys optargs-map))
-                           (map parse-val (vals optargs-map)))}}
+                   (zipmap (clojure.core/map name (clojure.core/keys optargs-map))
+                           (clojure.core/map parse-val (vals optargs-map)))}}
        {::type type
         ::optargs {::type :optargs
                    ::value
-                   (zipmap (map name (keys optargs-map))
-                           (map parse-val (vals optargs-map)))}})))
+                   (zipmap (clojure.core/map name (clojure.core/keys optargs-map))
+                           (clojure.core/map parse-val (vals optargs-map)))}})))
 
 ;;; -------------------------------------------------------------------------
 ;;; Lambdas
@@ -101,7 +96,7 @@
 (defn index-args
   [lambda-args]
   (zipmap lambda-args
-          (map (fn [n]
+          (clojure.core/map (fn [n]
                  {::type :var
                   ::number (parse-val (inc n))})
                (range))))
@@ -110,7 +105,7 @@
   [arglist & body]
   (let [ret (last body)
         arg-replacements (index-args arglist)]
-    `(query :FUNC [(vec (map inc (range ~(count arglist))))
+    `(query :FUNC [(vec (clojure.core/map inc (range ~(clojure.core/count arglist))))
                    ;; TODO - not the best model of scope
                    ~(clojure.walk/postwalk-replace arg-replacements ret)])))
 
