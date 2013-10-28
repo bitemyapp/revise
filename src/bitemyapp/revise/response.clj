@@ -21,7 +21,7 @@
 (defmethod response
   :r-array
   [m]
-  (map response (:r-array m)))
+  (mapv response (:r-array m)))
 
 (defmethod response
   :r-str

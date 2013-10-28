@@ -12,7 +12,7 @@
             [bitemyapp.revise.response :refer [inflate]]))
 
 ;; Clearly not final implementation
-(defonce current-connection (atom nil))
+;; (defonce current-connection (atom nil))
 
 (defn close
   "Close the connection"
@@ -72,19 +72,32 @@
                                      msg)]
     (.write out full-msg 0 (+ 4 c))))
 
-(defn send
-  "Send a start query to the current connection, assume everything's open."
-  [^PersistentProtocolBufferMap term]
-  (if-let [current @current-connection]
-    (let [type :START
-          token (inc (:token current))
-          {:keys [in out]} current]
+;; (clojure.core/send-off blah (fn [m _] (update-in m [:a] inc)) nil)
+
+(defn send-term
+  [^PersistentProtocolBufferMap term conn]
+  (let [type :START
+        {:keys [in out last-token]} conn
+        token (inc last-token)
+        prom (promise)]
       (send-protobuf out (pb/protobuf Query {:query term
                                              :token token
                                              :type type}))
       (swap! current-connection update-in [:token] inc)
-      (let [r (fetch-response in)]
-        (inflate r)))))
+
+;; (defn send
+;;   "Send a start query to the current connection, assume everything's open."
+;;   [^PersistentProtocolBufferMap term]
+;;   (if-let [current @current-connection]
+;;     (let [type :START
+;;           token (inc (:token current))
+;;           {:keys [in out]} current]
+;;       (send-protobuf out (pb/protobuf Query {:query term
+;;                                              :token token
+;;                                              :type type}))
+;;       (swap! current-connection update-in [:token] inc)
+;;       (let [r (fetch-response in)]
+;;         (inflate r)))))
 
 (defn connect
   [& [conn-map]]
@@ -93,29 +106,51 @@
                  :token 0
                  :auth-key ""}
         conn-map (merge default conn-map)
-        current @current-connection]
-    (when current
-      (close current))
-    (try
-      (let [token (:token conn-map)
-            auth-key (:auth-key conn-map)
-            socket (Socket. (:host conn-map) (:port conn-map))
-            out (DataOutputStream. (.getOutputStream socket))
-            in  (DataInputStream. (.getInputStream socket))
-            conn (reset! current-connection
-                         {:socket socket
-                          :token token
-                          ;; Data*Streams to send/receive bytes
-                          :out out
-                          :in in})]
-        (send-version out)
-        ;; todo
-        (send-auth-key out auth-key)
-        (println "When connecting:" (read-init-response in))
-        conn)
+        token (:token conn-map)
+        auth-key (:auth-key conn-map)
+        socket (Socket. (:host conn-map) (:port conn-map))
+        out (DataOutputStream. (.getOutputStream socket))
+        in  (DataInputStream. (.getInputStream socket))
+        conn (agent {:socket  socket
+                     :token   token
+                     :waiting {}
+                     :out     out
+                     :in      in})]
+    ;; (send-version out)
+    ;; (send-auth-key out auth-key)
+    ;; (println "When connecting:" (read-init-response in))
+    conn))
 
-      (catch ConnectException e
-        (println "Couldn't connect to" (str (:host conn-map)
-                                            ":"
-                                            (:port conn-map))
-                 (.getMessage e))))))
+;; (defn connect
+;;   [& [conn-map]]
+;;   (let [default {:host "127.0.0.1"
+;;                  :port 28015
+;;                  :token 0
+;;                  :auth-key ""}
+;;         conn-map (merge default conn-map)
+;;         current @current-connection]
+;;     (when current
+;;       (close current))
+;;     (try
+;;       (let [token (:token conn-map)
+;;             auth-key (:auth-key conn-map)
+;;             socket (Socket. (:host conn-map) (:port conn-map))
+;;             out (DataOutputStream. (.getOutputStream socket))
+;;             in  (DataInputStream. (.getInputStream socket))
+;;             conn (reset! current-connection
+;;                          {:socket socket
+;;                           :token token
+;;                           ;; Data*Streams to send/receive bytes
+;;                           :out out
+;;                           :in in})]
+;;         (send-version out)
+;;         ;; todo
+;;         (send-auth-key out auth-key)
+;;         (assert (= (read-init-response in) "SUCCESS"))
+;;         conn)
+
+;;       (catch ConnectException e
+;;         (println "Couldn't connect to" (str (:host conn-map)
+;;                                             ":"
+;;                                             (:port conn-map))
+;;                  (.getMessage e))))))
