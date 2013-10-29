@@ -307,10 +307,10 @@ or map that over a sequence"
 ;;; -- Sequence Ops --
 (defn between
   "Get all elements of a sequence between two values"
-  ([stream-selection x y]
-     (query :BETWEEN [stream-selection x y]))
-  ([stream-selection x y index]
-     (query :BETWEEN [stream-selection x y] {:index index})))
+  ([stream-selection lower upper]
+     (query :BETWEEN [stream-selection lower upper]))
+  ([stream-selection lower upper index]
+     (query :BETWEEN [stream-selection lower upper] {:index index})))
 
 (defn reduce
   ([sq lambda2]
