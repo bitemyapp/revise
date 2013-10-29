@@ -36,7 +36,8 @@
     (if (some (complement datum?) xs)
       ;; Manual invocation of query
       {::type :MAKE_ARRAY
-       ::value xs}
+       ::args {::type :args
+               ::value xs}}
       {::type :R_ARRAY
        ::value xs})))
 
