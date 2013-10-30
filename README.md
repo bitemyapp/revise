@@ -918,18 +918,31 @@ The following symbols are also part of the api and they should be properly names
 qualified:
 
 `r/+` Add numbers or concatenate strings or arrays.
+
 `r/-` Substract numbers.
+
 `r/*` Multiply numbers or make a periodic array.
+
 `r//` Divide numbers.
+
 `r/mod` Find the remainder of two numbers.
+
 `r/and` Logical and.
+
 `r/or` Logical or.
+
 `r/=` Test for equality.
+
 `r/not=` Test for inequality.
+
 `r/>` Greater than.
+
 `r/>=` Greater equal.
+
 `r/<` Lower than.
+
 `r/<=` Lower equal.
+
 `r/not` Logical inverse.
 
 ### Dates and times
@@ -1060,12 +1073,19 @@ time object.
 All of these take a `time` as the only argument.
 
 `r/year` Return the year of a time object.
+
 `r/month` Return the month as a number between 1 and 12.
+
 `r/day` Return the day as a number between 1 and 31.
+
 `r/day-of-week` Return the day of week as a number between 1 and 7 (ISO 8601).
+
 `r/day-of-year` Return the day of the year as a number between 1 and 366 (ISO 8601).
+
 `r/hours` Return the hour as a number between 0 and 23.
+
 `r/minutes` Return the minute in a time object as a number between 0 and 59.
+
 `r/seconds` Return the seconds in a time object as a number between 0 and 59.999 (double precision).
 
 #### ->iso8601
