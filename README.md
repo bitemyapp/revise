@@ -702,6 +702,540 @@ or map that over a sequence
     (r/pluck :reactor-state :reactor-power))
 ```
 
+#### without
+
+`([object-or-sequence & pathspecs])`
+
+The opposite of pluck. Get a subset of an object by selecting some attributes to
+discard, or map that over a sequence.
+
+```clojure
+(-> (r/table "marvel") (r/get "IronMan") (without :personal-victories-list))
+```
+
+#### merge
+
+`([& objects])`
+
+Merge objects. Right-preferential.
+
+```clojure
+(-> (r/table "marvel") (r/get "IronMan")
+    (r/merge (-> (r/table "loadouts")
+                 (r/get :alien-invasion-kit))))
+```
+
+#### append
+
+`([sequence item])`
+
+Append a value to an array
+
+```clojure
+(-> (r/table "authors")
+    (r/filter (r/lambda [author]
+                (r/= "William Adama"
+                     (r/get-field author name))))
+    (r/update (r/lambda [author]
+                {:posts
+                 (r/append (r/get-field row :posts)
+                           ;; Appending a new post
+                           {:title "Earth"
+                            :content "Earth is a dream.."})))))
+```
+
+#### prepend
+
+`([array item])`
+
+Prepend a value to an array
+
+```clojure
+(-> (r/table "authors")
+    (r/filter (r/lambda [author]
+                (r/= "William Adama"
+                     (r/get-field author name))))
+    (r/update (r/lambda [author]
+                {:posts
+                 (r/prepend (r/get-field row :posts)
+                              ;; Prepend a post
+                              {:title "Cylons"
+                               :content "The cylon war is long over"})))))
+```
+
+#### difference
+
+`([array1 array2])`
+
+Remove the elements of one array from another array.
+
+```clojure
+(-> (r/table "marvel")
+    (r/get "IronMan")
+    (r/get-field :equipment)
+    (r/difference "Boots"))
+```
+
+#### set-insert
+
+`([array item])`
+
+Add a value to an array as if the array was a set.
+
+```clojure
+(-> (r/table "marvel")
+    (r/get "IronMan")
+    (r/get-field "equipment")
+    (r/set-insert "new-boots"))
+```
+
+#### set-union
+
+`([array1 array2])`
+
+Add several values to an array as if it was a set
+
+```clojure
+(-> (r/table "marvel")
+    (r/get "IronMan")
+    (r/get-field "equipment")
+    (r/set-union ["new-boots" "arc-reactor"]))
+```
+
+#### set-intersection
+
+`([array1 array2])`
+
+Intersect 2 arrays returning values that occur in both of them as a set.
+
+```clojure
+(-> (r/table "marvel")
+    (r/get "IronMan")
+    (r/get-field "equipment")
+    (r/set-intersection ["new-boots" "arc-reactor"]))
+```
+
+#### get-field
+
+`([sequence-or-object])`
+
+Get a single field from an object. If called on a sequence, gets that field from
+every object in the sequence, skipping objects that lack it.
+
+```clojure
+(-> (r/table "marvel")
+    (r/get "IronMan")
+    (r/get-field "first-appearance"))
+```
+
+#### has-fields?
+
+`([object & pathspecs])`
+
+Check whether an object contains all the specified fields or filters a
+sequence so that al objects inside of it contain all the specified fields
+
+```clojure
+(-> (r/table "marvel")
+    (r/has-fields "spouse"))
+```
+
+#### insert-at
+
+`([array idx item])`
+
+Insert a value in to an array at a given index.
+
+```clojure
+(-> (r/parse-val ["IronMan" "SpiderMan"])
+    (r/insert-at 1 "Hulk"))
+```
+
+#### splice-at
+
+`([array1 idx array2])`
+
+Insert several values into an array at a given index.
+
+```clojure
+(-> (r/parse-val ["IronMan" "SpiderMan"])
+    (r/splice-at 1 ["Hulk" "Thor"]))
+```
+
+#### delete-at
+
+`([array idx & [end-idx]])`
+
+Remove an element from an array at a givem index.
+
+```clojure
+(-> (r/parse-val ["IronMan" "Hulk" "SpiderMan"])
+    (r/delete-at 1))
+```
+
+#### change-at
+
+`([array idx item])`
+
+Change a value in an array at a given index.
+
+```clojure
+(-> (r/parse-val ["IronMan" "Bruce" "SpiderMan"])
+    (r/change-at 1 "Hulk"))
+```
+
+#### keys
+
+`([object-or-single-selection])`
+
+Return an array containing all of the object's keys
+
+```clojure
+(-> (r/table "authors")
+    (r/get "7644aaf2-9928-4231-aa68-4e65e31bf219")
+    (r/keys))
+```
+
+### String manipulation
+
+#### match
+
+`([str regexp])`
+
+Returns a match object if the string matches the regexp. Accepts RE2 syntax
+https://code.google.com/p/re2/wiki/Syntax Accepts clojure regexp.
+
+```clojure
+(-> (r/table "users")
+    (r/filter (r/lambda [user]
+                (r/match (r/get-field user :name)
+                         #"^A"))))
+```
+
+### Math and logic
+
+The following symbols are also part of the api and they should be properly namespace
+qualified:
+
+`r/+` Add numbers or concatenate strings or arrays.
+`r/-` Substract numbers.
+`r/*` Multiply numbers or make a periodic array.
+`r//` Divide numbers.
+`r/mod` Find the remainder of two numbers.
+`r/and` Logical and.
+`r/or` Logical or.
+`r/=` Test for equality.
+`r/not=` Test for inequality.
+`r/>` Greater than.
+`r/>=` Greater equal.
+`r/<` Lower than.
+`r/<=` Lower equal.
+`r/not` Logical inverse.
+
+### Dates and times
+
+#### now
+
+`([])`
+
+Return a time object representing the time in UTC. The command now() is computed once
+when the server receives the query, so multiple instances of r.now() will always
+return the same time inside a query.
+
+```clojure
+(-> (r/table "users")
+    (r/insert {:name "John"
+               :subscription-date (r/now)}))
+```
+
+#### time
+
+`([year month day & [timezone]] [year month day hour minute second & [timezone])`
+
+Create a time object for a specific time.
+
+```clojure
+;; Update the birthdate of the user "John" to November 3rd, 1986 UTC
+(-> (r/table "user")
+    (r/get "John")
+    (r/update {:birthdate (r/time 1986 11 3 "Z")]))
+```
+
+#### epoch-time
+
+`([epoch-time])`
+
+Create a time object based on seconds since epoch.
+
+```clojure
+;; Update the birthdate of the user "John" to November 3rd, 1986
+(-> (r/table "user")
+    (r/get "john")
+    (r/update {:birthdate (r/epoch-time 531360000)}))
+```
+
+#### iso8601
+
+`([iso8601-date])`
+
+Create a time object based on an iso8601 date-time string.
+
+```clojure
+(-> (r/table "user")
+    (r/get "John")
+    (r/update {:birth (r/iso8601 "1986-11-03T08:30:00-07:00")}))
+```
+
+#### in-timezone
+
+`([time timezone])`
+
+Return a new time object with a different timezone. Results returned by functions
+that take the timezone into account will be different.
+
+```clojure
+(-> (r/now)
+    (r/in-timezone "-08:00)
+    (r/hours))
+```
+
+#### timezone
+
+`([time])`
+
+Return the timezone of the time object
+
+```clojure
+(-> (r/table "user")
+    (r/filter (r/lambda [user]
+                (r/= "-07:00"
+                  (-> (r/get-field user :subscription-date)
+                      (r/timezone))))))
+```
+
+#### during
+
+`([time start-time end-time])`
+
+Returns whether the time is in the range [start-time end-time)
+
+```clojure
+(-> (r/table "posts")
+    (r/filter (r/lambda [post]
+                (-> (r/get-field :date)
+                    (r/during (r/time 2013 12 1) (r/time 2013 12 10))))))
+```
+
+#### date
+
+`([time])`
+
+Return a new time object only based on the day, month and year
+
+```clojure
+(-> (r/table "users")
+    (r/filter (r/lambda [user]
+                (r/= (-> (r/now) (r/date))
+                  (r/get-field user :birthday)))))
+```
+
+#### time-of-day
+
+`([time])`
+
+Return the number of seconds elapsed since the beginning of the day stored in the
+time object.
+
+```clojure
+;; Posts submitted before noon
+(-> (r/table "posts")
+    (r/filter (r/lambda [post]
+               (r/> 12*60*60 ; Can be left as clojure.core/*
+                 (-> (r/get-field post :date)
+                     (r/time-of-day))))))
+```
+
+### Access time fields
+
+All of these take a `time` as the only argument.
+
+`r/year` Return the year of a time object.
+`r/month` Return the month as a number between 1 and 12.
+`r/day` Return the day as a number between 1 and 31.
+`r/day-of-week` Return the day of week as a number between 1 and 7 (ISO 8601).
+`r/day-of-year` Return the day of the year as a number between 1 and 366 (ISO 8601).
+`r/hours` Return the hour as a number between 0 and 23.
+`r/minutes` Return the minute in a time object as a number between 0 and 59.
+`r/seconds` Return the seconds in a time object as a number between 0 and 59.999 (double precision).
+
+#### ->iso8601
+
+`([time])`
+
+Convert a time object to its ISO 8601 format.
+
+```clojure
+(-> (r/now)
+    (r/to-iso8601))
+```
+
+#### ->epoch-time
+
+`([time])`
+
+Convert a time to its epoch time.
+
+```clojure
+(-> (r/now)
+    (r/->epoch-time))
+```
+
+### Control structures
+
+#### branch
+
+`([test then else])`
+
+Like an if.
+
+```clojure
+(-> (r/table "marvel")
+    (r/map (r/lambda [hero]
+             (r/branch (r/<= 100
+                         (r/get-field hero :victories))
+                       (r/+ (r/get-field hero :name) " is a superhero") ; then
+                       (r/+ (r/get-field hero :name) " is a hero")))))  ; else
+```
+
+#### any
+
+`([& bools])`
+
+A short circuiting or that returns a boolean
+
+```clojure
+;; hmm
+```
+
+#### all
+
+`([& bools])`
+
+Returns true if all of its arguments are true (short-circuiting).
+
+```clojure
+;; Hmm
+```
+
+#### foreach
+
+`([sequence lambda1])`
+
+Calls its function with each entry in the sequence and executes the array of
+terms that function returns.
+
+```clojure
+(-> (r/table "marvel")
+    (r/foreach (r/lambda [hero]
+                 (-> (r/table "villains")
+                     (r/get (r/get-field hero :villain-defeated)))))
+    (r/delete))
+```
+
+#### error
+
+`([& [s]])`
+
+Throw a runtime error. If called with no arguments inside the second argument to
+default, re-throw the current error.
+
+```clojure
+;; TODO
+```
+
+#### default
+
+`([item-to-check item-or-lambda1])`
+
+Evaluates its first argument. If that argument returns NULL or throws an error
+related to the absence of an expected value, default will either return its
+second argument or execute it if it's a function. If the second argument is a
+function it will be passed either the text of the error or NULL as its argument.
+
+```clojure
+(-> (r/table "projects")
+    (r/map (r/lambda [p]
+             (r/+ (r/default (r/get-field p :staff) 0)
+                  (r/default (r/get-field p :management) 0)))))
+```
+
+#### parse-val
+
+`([item])`
+
+Parse a clojure value to construct a json value. Strings, keywords, numbers, vectors,
+maps and booleans are allowed.
+
+```clojure
+(r/parse-val [1 false "hello" :goodbye {:a 1}])
+```
+
+#### js
+
+`([js-string])`
+
+Create a javascript expression.
+
+```clojure
+(r/js "1 + 1")
+```
+
+#### coerce-to
+
+`([item type-string])`
+
+Convert a value of one type into another.
+
+You can convert: a selection, sequence, or object into an ARRAY, an array of pairs
+into an OBJECT, and any DATUM into a STRING.
+
+```clojure
+(-> (r/table "marvel")
+    (r/coerce-to :array))
+```
+
+#### type-of
+
+`([item])`
+
+Get the type of a value.
+
+```clojure
+(-> (r/parse-val "hello!")
+    (r/type-of))
+```
+
+#### info
+
+`([any])`
+
+Get information about a rql value
+
+```clojure
+(-> (r/table "marvel")
+    (r/info))
+```
+
+#### json
+
+`([json-str])`
+
+Parse a JSON string on the server.
+
+```clojure
+(r/json "[1,2,3]")
+```
+
 
 ## License
 
