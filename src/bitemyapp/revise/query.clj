@@ -307,10 +307,10 @@ or map that over a sequence"
 ;;; -- Sequence Ops --
 (defn between
   "Get all elements of a sequence between two values"
-  ([stream-selection x y]
-     (query :BETWEEN [stream-selection x y]))
-  ([stream-selection x y index]
-     (query :BETWEEN [stream-selection x y] {:index index})))
+  ([stream-selection lower upper]
+     (query :BETWEEN [stream-selection lower upper]))
+  ([stream-selection lower upper index]
+     (query :BETWEEN [stream-selection lower upper] {:index index})))
 
 (defn reduce
   ([sq lambda2]
@@ -468,11 +468,11 @@ Optargs: :non-atomic -> bool
   (if-not optargs
     (query :UPDATE [stream-or-single-selection lambda1-or-obj])
     (let [optargs {}
-          optargs (if (clojure.core/contains? :non-atomic)
+          optargs (if (clojure.core/contains? optargs :non-atomic)
                     (assoc optargs :non_atomic (:non-atomic optargs)))
-          optargs (if (clojure.core/contains? :durability)
+          optargs (if (clojure.core/contains? optargs :durability)
                     (assoc optargs :durability (:durability optargs)))
-          optargs (if (clojure.core/contains? :return-vals)
+          optargs (if (clojure.core/contains? optargs :return-vals)
                     (assoc optargs :return-vals (:return-vals optargs)))]
       (query :UPDATE [stream-or-single-selection lambda1-or-obj] optargs))))
 
@@ -485,9 +485,9 @@ Optargs: :durability -> str
   (if-not optargs
     (query :DELETE [stream-or-single-selection])
     (let [optargs {}
-          optargs (if (clojure.core/contains? :durability)
+          optargs (if (clojure.core/contains? optargs :durability)
                     (assoc optargs :durability (:durability optargs)))
-          optargs (if (clojure.core/contains? :return-vals)
+          optargs (if (clojure.core/contains? optargs :return-vals)
                     (assoc optargs :return-vals (:return-vals optargs)))]
       (query :DELETE [stream-or-single-selection] optargs))))
 
@@ -502,11 +502,11 @@ Optargs: :non-atomic -> bool
   (if-not optargs
     (query :REPLACE [stream-or-single-selection lambda1])
     (let [optargs {}
-          optargs (if (clojure.core/contains? :non-atomic)
+          optargs (if (clojure.core/contains? optargs :non-atomic)
                     (assoc optargs :non_atomic (:non-atomic optargs)))
-          optargs (if (clojure.core/contains? :durability)
+          optargs (if (clojure.core/contains? optargs :durability)
                     (assoc optargs :durability (:durability optargs)))
-          optargs (if (clojure.core/contains? :return-vals)
+          optargs (if (clojure.core/contains? optargs :return-vals)
                     (assoc optargs :return-vals (:return-vals optargs)))]
       (query :REPLACE [stream-or-single-selection lambda1] optargs))))
 
@@ -521,11 +521,11 @@ Optargs: :upsert -> bool
   (if-not optargs
     (query :INSERT [table obj-or-sq])
     (let [optargs {}
-          optargs (if (clojure.core/contains? :upsert)
+          optargs (if (clojure.core/contains? optargs :upsert)
                     (assoc optargs :upsert (:upsert optargs)))
-          optargs (if (clojure.core/contains? :durability)
+          optargs (if (clojure.core/contains? optargs :durability)
                     (assoc optargs :durability (:durability optargs)))
-          optargs (if (clojure.core/contains? :return-vals)
+          optargs (if (clojure.core/contains? optargs :return-vals)
                     (assoc optargs :return-vals (:return-vals optargs)))]
       (query :INSERT [table obj-or-sq] optargs))))
 
@@ -559,13 +559,13 @@ Optargs: :datacenter str
     (if-not optargs
       (query :TABLE_CREATE [tname])
       (let [optargs {}
-            optargs (if (clojure.core/contains? :datacenter)
+            optargs (if (clojure.core/contains? optargs :datacenter)
                       (assoc optargs :datacenter (:datacenter optargs)))
-            optargs (if (clojure.core/contains? :primary-key)
+            optargs (if (clojure.core/contains? optargs :primary-key)
                       (assoc optargs :primary_key (:primary-key optargs)))
-            optargs (if (clojure.core/contains? :cache-size)
+            optargs (if (clojure.core/contains? optargs :cache-size)
                       (assoc optargs :cache-size (:cache-size optargs)))
-            optargs (if (clojure.core/contains? :durability)
+            optargs (if (clojure.core/contains? optargs :durability)
                       (assoc optargs :durability (:durability optargs)))]
         (query :TABLE_CREATE [tname] optargs)))))
 
@@ -581,13 +581,13 @@ Optargs: :datacenter str
     (if-not optargs
       (query :TABLE_CREATE [db tname])
       (let [optargs {}
-            optargs (if (clojure.core/contains? :datacenter)
+            optargs (if (clojure.core/contains? optargs :datacenter)
                       (assoc optargs :datacenter (:datacenter optargs)))
-            optargs (if (clojure.core/contains? :primary-key)
+            optargs (if (clojure.core/contains? optargs :primary-key)
                       (assoc optargs :primary_key (:primary-key optargs)))
-            optargs (if (clojure.core/contains? :cache-size)
+            optargs (if (clojure.core/contains? optargs :cache-size)
                       (assoc optargs :cache-size (:cache-size optargs)))
-            optargs (if (clojure.core/contains? :durability)
+            optargs (if (clojure.core/contains? optargs :durability)
                       (assoc optargs :durability (:durability optargs)))]
         (query :TABLE_CREATE [db tname] optargs)))))
 

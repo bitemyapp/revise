@@ -13,7 +13,7 @@
 
 ;; Clearly not final implementation
 ;; (defonce current-connection (atom nil))
-
+(declare current-connection) ; Just so it compiles for now
 (defn close
   "Close the connection"
   ([] (when-let [current @current-connection]
@@ -83,7 +83,7 @@
       (send-protobuf out (pb/protobuf Query {:query term
                                              :token token
                                              :type type}))
-      (swap! current-connection update-in [:token] inc)
+      (swap! current-connection update-in [:token] inc)))
 
 ;; (defn send
 ;;   "Send a start query to the current connection, assume everything's open."
