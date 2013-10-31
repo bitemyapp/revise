@@ -291,11 +291,9 @@
   (-> ordered
       (r/nth 1)))
 (def indexes-of
-  (-> (r/parse-val ["a" "b" "a" "c" "a"])
-      (r/indexes-of "a")))
+  (r/indexes-of ["a" "b" "a" "c" "a"] "a"))
 (def empty-array
-  (-> (r/parse-val [])
-      (r/empty?)))
+  (r/empty? []))
 (def union
   (-> users
       (r/union permissions)))
@@ -309,8 +307,7 @@
       (r/map (r/lambda [user] (r/count (r/get-field user :posts))))
       (r/reduce (r/lambda [acc cnt] (r/+ acc cnt)) 0)))
 (def distinct-array
-  (-> (r/parse-val [1 1 2 2 3 3 4 4])
-      (r/distinct)))
+  (r/distinct [1 1 2 2 3 3 4 4]))
 (def grouped-map-reduce
   (-> users
       (r/grouped-map-reduce
@@ -334,3 +331,159 @@
       (r/contains? "aa")))
 ;;; -----------------------------------------------------------------------
 ;;; Document manipulation
+(def pluck
+  (-> users (r/get "aa") (r/pluck :name :age)))
+(def without
+  (-> users (r/get "aa") (r/pluck :posts :country :gender :email)))
+(def merge
+  (-> users
+      (r/get "aa")
+      (r/merge (-> permissions (r/limit 1)))))
+(def append
+  (-> users
+      (r/get "aa")
+      (r/update (r/lambda [user]
+                          {:posts
+                           (r/append (r/get-field row :posts)
+                                     "wheee")}))))
+(def prepend
+  (-> users
+      (r/get "aa")
+      (r/update (r/lambda [user]
+                          {:posts
+                           (r/prepend (r/get-field row :posts)
+                                      "aaaah")}))))
+(def difference
+  (r/difference
+   ["a" "aa" "aaa"]
+   (-> users
+       (r/get "aa")
+       (r/get-field :posts))))
+(def set-insert
+  (r/set-insert [1 1 2] 3))
+(def set-union
+  (r/set-union [1 2 3] [2 3 4]))
+(def set-intersection
+  (r/set-insert [1 2 3] [3 4 5]))
+(def get-field
+  (-> users
+      (r/get "aa")
+      (r/get-field :name)))
+(def has-fields
+  (-> user
+      (r/get "aa")
+      (r/has-fields? :name :email :posts)))
+(def insert-at
+  (r/insert-at [1 3 4 5] 1 2))
+(def splice-at
+  (r/splice-at [1 2 6 7] 2 [3 4 5]))
+(def delete-at
+  (r/delete-at [1 2 3 4 5] 1 3))
+(def change-at
+  (r/change-at [1 2 5 4 5] 2 3))
+(def keys
+  (-> users
+      (r/get "aa")
+      (r/keys)))
+;;; -----------------------------------------------------------------------
+;;; String manipulation
+(def match-string
+  (-> (r/filter ["Hello" "Also" "Goodbye"]
+                (r/lambda [s]
+                          (r/match s #"^A")))))
+;;; -----------------------------------------------------------------------
+;;; Math and logic
+(def math
+  (r/mod 7
+         (r/+ 1
+              (r/* 2
+                   (r// 4 2)))))
+(def and-test
+  (r/and true true true))
+(def or-test
+  (r/or false false true))
+(def =test
+  (r/= 1 1))
+(def not=test
+  (r/not= 1 2))
+(def >test
+  (r/> 5 2))
+(def >=test
+  (r/>= 5 5))
+(def <test
+  (r/< 2 5))
+(def <=test
+  (r/<= 5 5))
+(def notatest
+  (r/not false))
+;;; -----------------------------------------------------------------------
+;;; Dates and times
+(def now
+  (r/now))
+(def time
+  (r/time 2005 10 20 3 40 5.502 "-06:00"))
+(def epoch-time
+  (r/epoch-time time))
+(def iso8601
+  (-> (r/iso8601 "2005-10-20T03:40:05.502-06:00")))
+(def in-timezone
+  (r/in-timezone time "-07:00"))
+(def timezone
+  (r/timezone time))
+(def during
+  (r/during time (r/time 2005 10 19) (r/time (2005 10 21))))
+(def date
+  (r/date time))
+(def time-of-day
+  (r/time-of-day time))
+(def ->iso8601
+  (r/->iso8601 time))
+(def ->epoch-time
+  (r/->epoch-time time))
+;;; -----------------------------------------------------------------------
+;;; Access time fields
+(def year
+  (r/year time))
+(def month
+  (r/month time))
+(def day
+  (r/day time))
+(def day-of-week
+  (r/day-of-week time))
+(def day-of-year
+  (r/day-of-year time))
+(def hours
+  (r/hours time))
+(def minutes
+  (r/minutes time))
+(def seconds
+  (r/seconds time))
+;;; -----------------------------------------------------------------------
+;;; Control structures
+(def branch
+  (r/branch true
+            "tis true!"
+            "tis false!"))
+(def any
+  (r/any false false false true))
+(def all
+  (r/all true true true true))
+(def foreach
+  ;; TODO
+  )
+(def error
+  (r/error "Wheeee"))
+(def default
+  (r/default nil "oooooh"))
+(def parse-val
+  (r/parse-val [1 false "hello" :goodbye {:a 1}]))
+(def js
+  (r/js "1 + 1"))
+(def coerce-to
+  (r/coerce-to {:a 1} :array))
+(def type-of
+  (r/type-of [1 2 3]))
+(def info
+  (r/info users))
+(def json
+  (r/json "[1,2,3]"))

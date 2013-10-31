@@ -547,9 +547,7 @@ Get the indexes of an element in a sequence. If the argument is a predicate, get
 indexes of all elements matching it.
 
 ```clojure
-;; Todo - needs an expr fn?
-(-> (r/expr ["a" "b" "c"])
-    (r/indexes-of "c"))
+(r/indexes-of ["a" "b" "c"] "c")
 ```
 
 #### empty?
@@ -847,7 +845,7 @@ sequence so that al objects inside of it contain all the specified fields
 Insert a value in to an array at a given index.
 
 ```clojure
-(-> (r/parse-val ["IronMan" "SpiderMan"])
+(-> ["IronMan" "SpiderMan"]
     (r/insert-at 1 "Hulk"))
 ```
 
@@ -858,7 +856,7 @@ Insert a value in to an array at a given index.
 Insert several values into an array at a given index.
 
 ```clojure
-(-> (r/parse-val ["IronMan" "SpiderMan"])
+(-> ["IronMan" "SpiderMan"]
     (r/splice-at 1 ["Hulk" "Thor"]))
 ```
 
@@ -866,10 +864,10 @@ Insert several values into an array at a given index.
 
 `([array idx & [end-idx]])`
 
-Remove an element from an array at a givem index.
+Remove an element from an array at a given index.
 
 ```clojure
-(-> (r/parse-val ["IronMan" "Hulk" "SpiderMan"])
+(-> ["IronMan" "Hulk" "SpiderMan"]
     (r/delete-at 1))
 ```
 
@@ -880,7 +878,7 @@ Remove an element from an array at a givem index.
 Change a value in an array at a given index.
 
 ```clojure
-(-> (r/parse-val ["IronMan" "Bruce" "SpiderMan"])
+(-> ["IronMan" "Bruce" "SpiderMan"]
     (r/change-at 1 "Hulk"))
 ```
 
@@ -1193,8 +1191,10 @@ function it will be passed either the text of the error or NULL as its argument.
 
 `([item])`
 
-Parse a clojure value to construct a json value. Strings, keywords, numbers, vectors,
-maps and booleans are allowed.
+Parse a clojure value to construct a json value. Strings, keywords, numbers,
+vectors, maps and booleans are allowed. This is the equivalent of `expr` in
+python. **Note that since these queries are functions and not methods, this
+function is hardly ever needed since it is already implicit.**
 
 ```clojure
 (r/parse-val [1 false "hello" :goodbye {:a 1}])
