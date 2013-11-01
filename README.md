@@ -925,9 +925,9 @@ qualified:
 
 `r/mod` Find the remainder of two numbers.
 
-`r/and` Logical and.
+<!-- `r/and` Logical and.  -->
 
-`r/or` Logical or.
+<!-- `r/or` Logical or. -->
 
 `r/=` Test for equality.
 
