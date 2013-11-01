@@ -1224,7 +1224,7 @@ into an OBJECT, and any DATUM into a STRING.
     (r/coerce-to :array))
 ```
 
-#### type-of
+#### type
 
 `([item])`
 
@@ -1232,7 +1232,7 @@ Get the type of a value.
 
 ```clojure
 (-> (r/parse-val "hello!")
-    (r/type-of))
+    (r/type))
 ```
 
 #### info

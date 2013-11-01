@@ -725,8 +725,8 @@ function it will be passed either the text of the error or NULL as its argument"
 
 (defn now
   "The time the query was received by the server"
-  [t]
-  (query :NOW [t]))
+  []
+  (query :NOW))
 
 (defn in-timezone
   "Puts a time into an ISO 8601 timezone"
@@ -748,6 +748,10 @@ a b and c are times"
   "(time-of-day x) == (- (date x) x)"
   [t]
   (query :TIME_OF_DAY [t]))
+
+(defn timezone
+  [t]
+  (query :TIMEZONE [t]))
 
 ;;; -- Accessing time components --
 (defn year
@@ -783,16 +787,17 @@ a b and c are times"
   (query :SECONDS [t]))
 
 ;;; -- Date construction --
-;;; Todo - better arg names
 (defn time
   "Construct a time from a date and optional timezone or a date+time and optional
 timezone"
-  ([n1 n2 n3]
-     (query :TIME [n1 n2 n3]))
-  ([n1 n2 n3 s]
-     (query :TIME [n1 n2 n3 s]))
-  ([n1 n2 n3 n4 n5 n6]
-     (query :TIME [n1 n2 n3 n4 n5 n6])))
+  ([y m d]
+     (query :TIME [y m d]))
+  ([y m d tz]
+     (query :TIME [y m d tz]))
+  ([y m d h min s]
+     (query :TIME [y m d h min s]))
+  ([y m d h min s tz]
+     (query :TIME [y m d h min s tz])))
 
 ;;; -- Constants for ISO 8601 days of the week --
 ;;; Todo - Wait how?

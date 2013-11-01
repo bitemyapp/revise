@@ -344,14 +344,14 @@
       (r/get "aa")
       (r/update (r/lambda [user]
                           {:posts
-                           (r/append (r/get-field row :posts)
+                           (r/append (r/get-field user :posts)
                                      "wheee")}))))
 (def prepend
   (-> users
       (r/get "aa")
       (r/update (r/lambda [user]
                           {:posts
-                           (r/prepend (r/get-field row :posts)
+                           (r/prepend (r/get-field user :posts)
                                       "aaaah")}))))
 (def difference
   (r/difference
@@ -370,7 +370,7 @@
       (r/get "aa")
       (r/get-field :name)))
 (def has-fields
-  (-> user
+  (-> users
       (r/get "aa")
       (r/has-fields? :name :email :posts)))
 (def insert-at
@@ -397,11 +397,11 @@
   (r/mod 7
          (r/+ 1
               (r/* 2
-                   (r// 4 2)))))
-(def and-test
-  (r/and true true true))
-(def or-test
-  (r/or false false true))
+                   (r/div 4 2)))))
+;; (def and-test
+;;   (r/and true true true))
+;; (def or-test
+;;   (r/or false false true))
 (def =test
   (r/= 1 1))
 (def not=test
@@ -431,7 +431,7 @@
 (def timezone
   (r/timezone time))
 (def during
-  (r/during time (r/time 2005 10 19) (r/time (2005 10 21))))
+  (r/during time (r/time 2005 10 19) (r/time 2005 10 21)))
 (def date
   (r/date time))
 (def time-of-day
@@ -481,8 +481,8 @@
   (r/js "1 + 1"))
 (def coerce-to
   (r/coerce-to {:a 1} :array))
-(def type-of
-  (r/type-of [1 2 3]))
+(def type
+  (r/type [1 2 3]))
 (def info
   (r/info users))
 (def json
