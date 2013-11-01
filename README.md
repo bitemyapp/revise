@@ -26,6 +26,9 @@ The api is under the namespace bitemyapp.revise.query
 (require '[bitemyapp.revise.query :as r])
 ```
 
+Note: rethinkdb doesn't let you use hyphens (`-`) as part of database or table
+names. Revise won't 'fix' those names for you.
+
 ### Manipulating databases
 
 #### db-create
@@ -34,7 +37,7 @@ The api is under the namespace bitemyapp.revise.query
 Create a database.
 
 ```clojure
-(r/db-create "my-db")
+(r/db-create "my_db")
 ```
 
 #### db-drop
@@ -43,7 +46,7 @@ Create a database.
 Drop a database.
 
 ```clojure
-(r/db-drop "my-db")
+(r/db-drop "my_db")
 ```
 
 #### db-list
@@ -245,7 +248,7 @@ nothing
 to do: either the row didn't exist or the new value is null.
 * `:errors` The number of errors encountered while performing the update; if errors
 occured, first_error contains the text of the first error.
-* `:deleted` and inserted: 0 for an update operation.
+* `:deleted` and `:inserted` Are 0 for an update operation.
 
 #### replace
 
@@ -722,6 +725,9 @@ Merge objects. Right-preferential.
     (r/merge (-> (r/table "loadouts")
                  (r/get :alien-invasion-kit))))
 ```
+
+The query `literal` takes a single argument and it can be used to indicate merge
+to replace the other object rather than merge it.
 
 #### append
 
@@ -1255,6 +1261,50 @@ Parse a JSON string on the server.
 ```clojure
 (r/json "[1,2,3]")
 ```
+
+### Time constants
+
+Time constants are already evaluated and so they don't have to be called as fns.
+
+`r/monday`    => 1
+
+`r/tuesday`   => 2
+
+`r/wednesday` => 3
+
+`r/thursday`  => 4
+
+`r/friday`    => 5
+
+`r/saturday`  => 6
+
+`r/sunday`    => 7
+
+
+`r/january`   => 1
+
+`r/february`  => 2
+
+`r/march`     => 3
+
+`r/april`     => 4
+
+`r/may`       => 5
+
+`r/june`      => 6
+
+`r/july`      => 7
+
+`r/august`    => 8
+
+`r/september` => 9
+
+`r/october`   => 10
+
+`r/november`  => 11
+
+`r/december`  => 12
+
 
 
 ## License

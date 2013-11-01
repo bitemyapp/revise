@@ -134,9 +134,7 @@ such as the maps returned by lambdas passed as arguments to update."
   ([] (query :ERROR))
   ([s] (query :ERROR [s])))
 
-(defn implicit-var
-  []
-  (query :IMPLICIT_VAR))
+(def implicit-var (query :IMPLICIT_VAR))
 
 ;;; -- Data Operators --
 (defn db
@@ -148,7 +146,7 @@ such as the maps returned by lambdas passed as arguments to update."
      (query :TABLE [table-name]))
   ([table-name use-outdated?]
      (query :TABLE [table-name] {:use_outdated use-outdated?})))
-;;; TODO - figure out a better approach for this
+
 (defn table-db
   ([db table-name]
      (query :TABLE [db table-name]))
@@ -159,7 +157,7 @@ such as the maps returned by lambdas passed as arguments to update."
   [table k]
   (let [k (name k)]
     (query :GET [table k])))
-;;; todo - check
+
 (defn get-all
   ([table xs]
      (query :GET_ALL (concat [table] xs)))
@@ -325,8 +323,6 @@ or map that over a sequence"
   [sq lambda1]
   (query :MAP [sq lambda1]))
 
-(declare default)
-;;; TODO - wat
 (defn filter
   "Filter a sequence with either a function or a shortcut object.
 The body of filter is wrapped in an implicit (default .. false) and you
@@ -334,8 +330,7 @@ can change the default value by specifying the default optarg. If you
 make the default (error), all errors caught by default will be rethrown
 as if the default did not exist"
   ([sq lambda1-or-obj]
-     (-> (query :FILTER [sq lambda1-or-obj])
-         (default false)))
+     (query :FILTER [sq lambda1-or-obj]))
   ([sq lambda1-or-obj default-val]
      (query :FILTER [sq lambda1-or-obj] {:default default-val})))
 
@@ -344,7 +339,6 @@ as if the default did not exist"
   [sq lambda1]
   (query :CONCATMAP [sq lambda1]))
 
-;;; TODO
 (defn order-by
   "Order a sequence based on one or more attributes"
   [sq & strs-or-orderings]
@@ -414,7 +408,6 @@ At present group-by supports the following operations
   [sq1 sq2 lambda2]
   (query :OUTER_JOIN [sq1 sq2 lambda2]))
 
-;;; TODO
 (defn eq-join
   "An inner-join that does an equality comparison on two attributes"
   ([sq1 str sq2]
@@ -759,17 +752,37 @@ a b and c are times"
 (defn time
   "Construct a time from a date and optional timezone or a date+time and optional
 timezone"
-  ;; ([y m d]
-  ;;    (query :TIME [y m d]))
+  ([y m d]
+     (query :TIME [y m d "+00:00"]))
   ([y m d tz]
      (query :TIME [y m d tz]))
-  ;; ([y m d h min s]
-  ;;    (query :TIME [y m d h min s]))
+  ([y m d h min s]
+     (query :TIME [y m d h min s "+00:00"]))
   ([y m d h min s tz]
      (query :TIME [y m d h min s tz])))
 
 ;;; -- Constants for ISO 8601 days of the week --
-;;; Todo - Wait how?
+(def monday    (query :MONDAY))
+(def tuesday   (query :TUESDAY))
+(def wednesday (query :WEDNESDAY))
+(def thursday  (query :THURSDAY))
+(def friday    (query :FRIDAY))
+(def saturday  (query :SATURDAY))
+(def sunday    (query :SUNDAY))
+
+;;; -- Constants for ISO 8601 months --
+(def january   (query :JANUARY))
+(def february  (query :FEBRUARY))
+(def march     (query :MARCH))
+(def april     (query :APRIL))
+(def may       (query :MAY))
+(def june      (query :JUNE))
+(def july      (query :JULY))
+(def august    (query :AUGUST))
+(def september (query :SEPTEMBER))
+(def october   (query :OCTOBER))
+(def november  (query :NOVEMBER))
+(def december  (query :DECEMBER))
 
 ;;; -- Bonus Term --
 (defn literal

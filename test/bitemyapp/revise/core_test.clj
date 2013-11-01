@@ -500,6 +500,13 @@
   (r/info users))
 (def json
   (r/json "[1,2,3]"))
+;;; -----------------------------------------------------------------------
+;;; Control structures
+(def time-constants
+  (r/parse-val [r/monday r/tuesday r/wednesday r/thursday r/friday
+                r/saturday r/sunday
+                r/january r/february r/march r/april r/may r/june r/july
+                r/august r/september r/october r/november r/december]))
 
 ;;; MODIFY THIS AFTER PROMISES STUFF IS WORKING :-)?
 (defn resp [r] (:response r))
@@ -510,23 +517,29 @@
     (is (= (rr create-database) [{:created 1}]))
     (is (contains? (set (first (rr db-list)))
                    "revise_test_db"))
-    (is (= (rr drop-database) [{:dropped 1}])))
+    (is (= (rr drop-database)   [{:dropped 1}])))
 
   (testing "Manipulating tables"
     (are [x y] (= x y)
-         (rr create-table)                         [{:created 1}]
-         (rr create-table-optargs)                 [{:created 1}]
-         (rr drop-table)                           [{:dropped 1}]
-         (rr create-index)                         [{:created 1}]
-         (rr create-multi-index)                   [{:created 1}]
-         (set (first (rr list-index)))             #{"demo" "email"}
-         (rr drop-index)                           [{:dropped 1}]
+         (rr create-table)                 [{:created 1}]
+         (rr create-table-optargs)         [{:created 1}]
+         (rr drop-table)                   [{:dropped 1}]
+         (rr create-index)                 [{:created 1}]
+         (rr create-multi-index)           [{:created 1}]
+         (set (first (rr list-index)))     #{"demo" "email"}
+         (rr drop-index)                   [{:dropped 1}]))
+
+  (testing "Writing data"
+    (are [x y] (= x y)
          (:inserted (first (rr insert-multi)))     6
          (:inserted (first (rr insert-single)))    1
          (:replaced (first (rr update-append)))    7
          (:replaced (first (rr update-lambda)))    7
          (:replaced (first (rr replace-test)))     1
-         (:deleted (first (rr delete)))            1
+         (:deleted (first (rr delete)))            1))
+
+  (testing "Selecting data"
+    (are [x y] (= x y)
          (:error (run reference-db))               :runtime-error
          (count (rr select-table))                 6
          (first (rr get-doc))                      {:admin false :age 21,
@@ -539,27 +552,34 @@
          (count (rr between))                      3
          (count (rr filter-test))                  2
          (first (rr create-permissions))           {:created 1}
-         (:inserted (first (rr add-permissions)))  3
+         (:inserted (first (rr add-permissions)))  3))
+
+  (testing "Joins"
+    (are [x y] (= x y)
          ;; 6 x 3 = 18 - cartesian product
-         (count (rr inner-join))                   18
-         (count (rr outer-join))                   18
-         (count (rr eq-join))                      6
-         (count (rr zip))                          6
-         (set (rr mapped))                         #{21 22 23}
-         (count (rr with-fields))                  6
-         (set (rr mapcatted))                      #{"aa" "bb" "ee" "aaa"
-                                                     "a" "b" "c" "e" "eeeee"}
-         (:age (first (rr ordered-desc)))          23
-         (:age (first (rr ordered-asc)))           21
-         (count (rr ordered))                      6
-         (count (rr skip))                         4
-         (count (rr limit))                        2
-         (count (rr slice))                        2
-         (:age (first (rr nth-item)))               21
-         (first (rr indexes-of))                   [0 2 4]
-         (rr empty-array)                          [true]
-         (count (rr union))                        9
-         (count (rr sample))                       2))
+         (count (rr inner-join))    18
+         (count (rr outer-join))    18
+         (count (rr eq-join))       6
+         (count (rr zip))           6))
+
+  (testing "Transformations"
+    (are [x y] (= x y)
+         (set (rr mapped))                    #{21 22 23}
+         (count (rr with-fields))             6
+         (set (rr mapcatted))                 #{"aa" "bb" "ee" "aaa"
+                                                "a" "b" "c" "e" "eeeee"}
+         (:age (first (rr ordered-desc)))     23
+         (:age (first (rr ordered-asc)))      21
+         (count (rr ordered))                 6
+         (count (rr skip))                    4
+         (count (rr limit))                   2
+         (count (rr slice))                   2
+         (:age (first (rr nth-item)))         21
+         (first (rr indexes-of))              [0 2 4]
+         (rr empty-array)                     [true]
+         (count (rr union))                   9
+         (count (rr sample))                  2))
+
   (testing "Aggregation"
     (are [x y] (= x y)
          (first (rr count-posts))             10
@@ -571,7 +591,8 @@
                                                {:group {:age 22}, :reduction 3}
                                                {:group {:age 23}, :reduction 1}]
          ;; TODO - grouped-sum + grouped-average
-         (first (rr contains))           true))
+         (first (rr contains))                true))
+
   (testing "Document Manipulation"
     (are [x y] (= x y)
          (first (rr pluck))                        {:age 21, :name "aa"}
@@ -596,8 +617,10 @@
          (rr change-at)                [[1 2 3 4 5]]
          (set (first (rr keys-test)))  #{"gender" "name" "permission"
                                          "admin" "posts" "country" "email" "age"}))
+
   (testing "String Manipulation"
     (is (= (rr match-string) [["Also"]])))
+
   (testing "Math and Logic"
     (are [x y] (= x y)
          (rr math)      [2]
@@ -633,6 +656,7 @@
   ;;        (rr time-of-day)               [34805.502]
   ;;        (rr ->iso8601)                 ["2005-10-20T03:40:05.502-06:00"]
   ;;        (rr ->epoch-time)              [1129801205]))
+
   (testing "Time fields access"
     (are [x y] (= x y)
          (rr year)        [2005]
@@ -643,6 +667,7 @@
          (rr hours)       [3]
          (rr minutes)     [40]
          (rr seconds)     [5.502]))
+
   (testing "Control structures"
     (are [x y] (= x y)
          (rr branch)        ["tis true!"]
@@ -659,6 +684,11 @@
                              :indexes ["demo"], :name "revise_users"
                              :primary_key "name", :type "TABLE"}
          (rr json)          [[1 2 3]]))
+
+  (testing "Time constants"
+    (is (= (first (rr time-constants))
+           [1 2 3 4 5 6 7 1 2 3 4 5 6 7 8 9 10 11 12])))
+
   (testing "Cleanup"
     (are [x y] (= x y)
          (first (rr (-> (r/db "test")
