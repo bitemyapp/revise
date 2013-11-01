@@ -206,7 +206,8 @@ such as the maps returned by lambdas passed as arguments to update."
   [& args]
   (query :MUL args))
 
-(defn /
+;; Weird stuff happens when we redefine / and use it from another namespace
+(defn div
   [& args]
   (query :DIV args))
 

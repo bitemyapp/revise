@@ -921,7 +921,7 @@ qualified:
 
 `r/*` Multiply numbers or make a periodic array.
 
-`r//` Divide numbers.
+`r/div` Divide numbers. **Note that it's not r//**
 
 `r/mod` Find the remainder of two numbers.
 
