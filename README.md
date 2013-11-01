@@ -1138,7 +1138,7 @@ Like an if.
 A short circuiting or that returns a boolean
 
 ```clojure
-;; hmm
+;; (r/any false false true)
 ```
 
 #### all
@@ -1148,7 +1148,7 @@ A short circuiting or that returns a boolean
 Returns true if all of its arguments are true (short-circuiting).
 
 ```clojure
-;; Hmm
+;; (r/all true true true)
 ```
 
 #### foreach
@@ -1174,7 +1174,7 @@ Throw a runtime error. If called with no arguments inside the second argument to
 default, re-throw the current error.
 
 ```clojure
-;; TODO
+;; (r/error "kaput")
 ```
 
 #### default
