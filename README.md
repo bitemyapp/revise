@@ -249,7 +249,7 @@ occured, first_error contains the text of the first error.
 
 #### replace
 
-`([stream-or-single-selection lambda1 & {:as optargs}])`
+`([stream-or-single-selection lambda1-or-obj & {:as optargs}])`
 
 Replace documents in a table. The new document must have the same primary key as the
 original document. Accepts the following optional arguments:
@@ -340,14 +340,14 @@ Get a document by its primary key.
 
 #### get-all
 
-`([table keys-seq & [index]])`
+`([table keys-vec & [index]])`
 
 Get all documents where the given value matches the value of the requested index
 
 ```clojure
 ;; After setting the secondary key :name on the table :authors
 (-> (r/table "authors")
-  (r/get-all "William Adama" :name))
+  (r/get-all ["William Adama"] :name))
 ```
 
 #### between

@@ -4,7 +4,9 @@
                             not + - * / mod contains? keys
                             merge reduce map filter mapcat
                             distinct count empty? nth
-                            group-by type replace time]))
+                            group-by type replace time])
+  (:require [bitemyapp.revise.utils.case :refer [snake-case-keys
+                                                 capitalize-map]]))
 
 (defn datum?
   [m]
@@ -160,9 +162,9 @@ such as the maps returned by lambdas passed as arguments to update."
 ;;; todo - check
 (defn get-all
   ([table xs]
-     (query :GET_ALL xs))
+     (query :GET_ALL (concat [table] xs)))
   ([table xs index]
-     (query :GET_ALL xs {:index index})))
+     (query :GET_ALL (concat [table] xs) {:index index})))
 
 ;;; -- DATUM Ops --
 (defn =
@@ -396,8 +398,13 @@ At present group-by supports the following operations
 - :count - count the size of the group
 - {:sum attr} - sum the values of the given attribute accross the group
 - {:avg attr} - average the values of the given attribute accross the group"
-  [sq array operation-obj]
-  (query :GROUPBY [sq array operation-obj]))
+  [sq array operation]
+  (let [operation-obj
+        (-> (if (keyword? operation)
+              {operation operation}
+              operation)
+            capitalize-map)]
+    (query :GROUPBY [sq array operation-obj])))
 
 (defn inner-join
   [sq1 sq2 lambda2]
@@ -453,7 +460,7 @@ At present group-by supports the following operations
 (defn type
   "Returns the named type of a datum"
   [x]
-  (query :TYPE_OF [x]))
+  (query :TYPEOF [x]))
 
 ;;; -- Write Ops --
 (defn update
@@ -468,14 +475,8 @@ Optargs: :non-atomic -> bool
    & {:as optargs}]
   (if-not optargs
     (query :UPDATE [stream-or-single-selection lambda1-or-obj])
-    (let [optargs {}
-          optargs (if (clojure.core/contains? optargs :non-atomic)
-                    (assoc optargs :non_atomic (:non-atomic optargs)))
-          optargs (if (clojure.core/contains? optargs :durability)
-                    (assoc optargs :durability (:durability optargs)))
-          optargs (if (clojure.core/contains? optargs :return-vals)
-                    (assoc optargs :return-vals (:return-vals optargs)))]
-      (query :UPDATE [stream-or-single-selection lambda1-or-obj] optargs))))
+    (query :UPDATE [stream-or-single-selection lambda1-or-obj]
+           (snake-case-keys optargs))))
 
 (defn delete
   "Deletes all the rows in a selection
@@ -485,12 +486,8 @@ Optargs: :durability -> str
   [stream-or-single-selection & {:as optargs}]
   (if-not optargs
     (query :DELETE [stream-or-single-selection])
-    (let [optargs {}
-          optargs (if (clojure.core/contains? optargs :durability)
-                    (assoc optargs :durability (:durability optargs)))
-          optargs (if (clojure.core/contains? optargs :return-vals)
-                    (assoc optargs :return-vals (:return-vals optargs)))]
-      (query :DELETE [stream-or-single-selection] optargs))))
+    (query :DELETE [stream-or-single-selection]
+           (snake-case-keys optargs))))
 
 (defn replace
   "Replaces all the rows in a selection. Calls its function with the row to be
@@ -502,14 +499,8 @@ Optargs: :non-atomic -> bool
   [stream-or-single-selection lambda1 & {:as optargs}]
   (if-not optargs
     (query :REPLACE [stream-or-single-selection lambda1])
-    (let [optargs {}
-          optargs (if (clojure.core/contains? optargs :non-atomic)
-                    (assoc optargs :non_atomic (:non-atomic optargs)))
-          optargs (if (clojure.core/contains? optargs :durability)
-                    (assoc optargs :durability (:durability optargs)))
-          optargs (if (clojure.core/contains? optargs :return-vals)
-                    (assoc optargs :return-vals (:return-vals optargs)))]
-      (query :REPLACE [stream-or-single-selection lambda1] optargs))))
+    (query :REPLACE [stream-or-single-selection lambda1]
+           (snake-case-keys optargs))))
 
 (defn insert
   "Insert into a table. If upsert is true, overwrites entries with the
@@ -521,14 +512,8 @@ Optargs: :upsert -> bool
   [table obj-or-sq & {:as optargs}]
   (if-not optargs
     (query :INSERT [table obj-or-sq])
-    (let [optargs {}
-          optargs (if (clojure.core/contains? optargs :upsert)
-                    (assoc optargs :upsert (:upsert optargs)))
-          optargs (if (clojure.core/contains? optargs :durability)
-                    (assoc optargs :durability (:durability optargs)))
-          optargs (if (clojure.core/contains? optargs :return-vals)
-                    (assoc optargs :return-vals (:return-vals optargs)))]
-      (query :INSERT [table obj-or-sq] optargs))))
+    (query :INSERT [table obj-or-sq]
+           (snake-case-keys optargs))))
 
 ;;; -- Administrative Ops --
 (defn db-create
@@ -559,16 +544,7 @@ Optargs: :datacenter str
   (let [tname (name tname)]
     (if-not optargs
       (query :TABLE_CREATE [tname])
-      (let [optargs {}
-            optargs (if (clojure.core/contains? optargs :datacenter)
-                      (assoc optargs :datacenter (:datacenter optargs)))
-            optargs (if (clojure.core/contains? optargs :primary-key)
-                      (assoc optargs :primary_key (:primary-key optargs)))
-            optargs (if (clojure.core/contains? optargs :cache-size)
-                      (assoc optargs :cache-size (:cache-size optargs)))
-            optargs (if (clojure.core/contains? optargs :durability)
-                      (assoc optargs :durability (:durability optargs)))]
-        (query :TABLE_CREATE [tname] optargs)))))
+      (query :TABLE_CREATE [tname] (snake-case-keys optargs)))))
 
 (defn table-create-db
   "Creates a table with a particular name in a particular database
@@ -581,16 +557,8 @@ Optargs: :datacenter str
   (let [tname (name tname)]
     (if-not optargs
       (query :TABLE_CREATE [db tname])
-      (let [optargs {}
-            optargs (if (clojure.core/contains? optargs :datacenter)
-                      (assoc optargs :datacenter (:datacenter optargs)))
-            optargs (if (clojure.core/contains? optargs :primary-key)
-                      (assoc optargs :primary_key (:primary-key optargs)))
-            optargs (if (clojure.core/contains? optargs :cache-size)
-                      (assoc optargs :cache-size (:cache-size optargs)))
-            optargs (if (clojure.core/contains? optargs :durability)
-                      (assoc optargs :durability (:durability optargs)))]
-        (query :TABLE_CREATE [db tname] optargs)))))
+      (query :TABLE_CREATE [db tname]
+             (snake-case-keys optargs)))))
 
 (defn table-drop
   "Drops a table with a particular name from the default database"
@@ -654,7 +622,7 @@ Optarg: multi -> bool"
 (defn all
   "Returns true if all of its arguments are true (short-circuits)"
   [& bools]
-  (query :EVERY bools))
+  (query :ALL bools))
 
 (defn foreach
   "Calls its function with each entry in the sequence and executes the array of
@@ -787,15 +755,16 @@ a b and c are times"
   (query :SECONDS [t]))
 
 ;;; -- Date construction --
+;;; Apparently timezone is obligatory contrary to what the .proto docs say
 (defn time
   "Construct a time from a date and optional timezone or a date+time and optional
 timezone"
-  ([y m d]
-     (query :TIME [y m d]))
+  ;; ([y m d]
+  ;;    (query :TIME [y m d]))
   ([y m d tz]
      (query :TIME [y m d tz]))
-  ([y m d h min s]
-     (query :TIME [y m d h min s]))
+  ;; ([y m d h min s]
+  ;;    (query :TIME [y m d h min s]))
   ([y m d h min s tz]
      (query :TIME [y m d h min s tz])))
 

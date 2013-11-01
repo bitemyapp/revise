@@ -29,3 +29,14 @@
   (if (keyword? x)
     (-> x (name) (s/lower-case) (keyword))
     (-> x (s/lower-case))))
+
+(defn snake-case-keys
+  "Snake case the keys of a map"
+  [m]
+  (zipmap (map snake-case (keys m))
+          (vals m)))
+
+(defn capitalize-map
+  [m]
+  (zipmap (map (comp s/upper-case name) (keys m))
+          (map (comp s/upper-case name) (vals m))))

@@ -28,8 +28,13 @@
        (not (nil? t)) :op))))
 
 (defmethod compile-term :default
-  [_]
-  (throw (Exception. "wat")))
+  [x]
+  (let [msg (if (nil? x)
+              "Cannot compile 'nil' Maybe you messed up namespace qualifying a query?"
+              (str "Cannot compile '" x
+                   "' Maybe you messed up namespace qualifying a query?"))]
+    (throw (Exception.
+            msg))))
 
 (defmethod compile-term :primitive
   [{type :bitemyapp.revise.query/type
