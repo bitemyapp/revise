@@ -56,6 +56,8 @@ The api is under the namespace bitemyapp.revise.query
 Note: rethinkdb doesn't let you use hyphens (`-`) as part of database or table
 names. Revise won't 'fix' those names for you.
 
+Also note that keywords and strings are interchangeable.
+
 ### Lambdas
 
 Many queries such as `map`, `filter`, etc. support lambdas. Lambdas are anonymous
@@ -120,6 +122,7 @@ The default is 1073741824 (1024MB).
 
 ```clojure
 (-> (r/db "test") (r/table-create-db "authors") (run conn))
+(-> (r/db "test") (r/table-create-db "users" :primary-key :email) (run conn))
 ```
 
 #### table-create
