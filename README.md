@@ -22,7 +22,7 @@ works on version `1.9` of RethinkDB.
 ## Connecting to rethinkdb
 
 ```clojure
-(require '[bitemyapp.revise.connection :refer [connect]])
+(require '[bitemyapp.revise.connection :refer [connect close]])
 (require '[bitemyapp.revise.query :as r])
 (require '[bitemyapp.revise.core :refer [run]])
 
@@ -34,9 +34,11 @@ works on version `1.9` of RethinkDB.
                             :auth-key ""})
       ;; running a query against a connection returns a promise, the API
       ;; and underlying implementation are asynchronous.
-      response (-> (r/db "test") (r/table-create-db "authors") (run conn))]
-      ;; dereference the promise to block on it.
-      (println @response))
+      response (-> (r/db "test") (r/table-create-db "authors") (run local-conn))]
+  ;; dereference the promise to block on it.
+  (println @response)
+  ;; We are done using the connection
+  (close local-conn))
 ```
 
 ## Compiling and sending a query
@@ -53,6 +55,22 @@ The api is under the namespace bitemyapp.revise.query
 
 Note: rethinkdb doesn't let you use hyphens (`-`) as part of database or table
 names. Revise won't 'fix' those names for you.
+
+### Lambdas
+
+Many queries such as `map`, `filter`, etc. support lambdas. Lambdas are anonymous
+functions with syntax like clojure's `fn`.
+
+Example:
+
+```clojure
+(-> [1 2 3 4 5 6 7]
+    (r/map (r/lambda [n]
+             (r/* n 2)))
+    (run conn))
+```
+
+This will give you the response `([2 4 6 8 10 12 14])`
 
 ### Manipulating databases
 
