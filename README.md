@@ -16,7 +16,8 @@ We're confident this is already one of the more stable, feature-complete, and sa
 
 ## Introduction
 
-These docs are - for now - loosely based on the python api docs
+These docs are - for now - loosely based on the python api docs. The driver
+works on version `1.9` of RethinkDB.
 
 ## Connecting to rethinkdb
 
