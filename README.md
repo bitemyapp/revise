@@ -12,7 +12,17 @@ These docs are - for now - loosely based on the python api docs
 
 ## Connecting to rethinkdb
 
-TODO
+```clojure
+(require '[bitemyapp.revise.connection :refer [connect]])
+(require '[bitemyapp.revise.query :as r])
+
+;; connect returns the connection agent
+(let [conn (connect)
+      ;; running a query against a connection returns a promise, the API
+      ;; and underlying implementation are asynchronous.
+      response (-> (r/db "test") (r/table-create-db "authors") (run conn))]
+      (println @response))
+```
 
 ## Compiling and sending a query
 
