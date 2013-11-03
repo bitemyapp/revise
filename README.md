@@ -23,6 +23,7 @@ These docs are - for now - loosely based on the python api docs
 ```clojure
 (require '[bitemyapp.revise.connection :refer [connect]])
 (require '[bitemyapp.revise.query :as r])
+(require '[bitemyapp.revise.core :refer [run]])
 
 ;; connect returns the connection agent
 (let [local-conn  (connect) ;; defaults to localhost
@@ -60,7 +61,7 @@ names. Revise won't 'fix' those names for you.
 Create a database.
 
 ```clojure
-(r/db-create "my_db")
+(-> (r/db-create "my_db") (run conn))
 ```
 
 #### db-drop
@@ -69,7 +70,7 @@ Create a database.
 Drop a database.
 
 ```clojure
-(r/db-drop "my_db")
+(-> (r/db-drop "my_db") (run conn))
 ```
 
 #### db-list
@@ -78,7 +79,7 @@ Drop a database.
 List the database names in the system.
 
 ```clojure
-(r/db-list)
+(-> (r/db-list) (run conn))
 ```
 
 ### Manipulating tables
@@ -99,7 +100,7 @@ The default is 1073741824 (1024MB).
 * `:datacenter` The name of the datacenter this table should be assigned to.
 
 ```clojure
-(-> (r/db "test") (r/table-create-db "authors"))
+(-> (r/db "test") (r/table-create-db "authors") (run conn))
 ```
 
 #### table-create
@@ -109,7 +110,7 @@ The default is 1073741824 (1024MB).
 Like `table-create-db` except that the db is the default db.
 
 ```clojure
-(r/table-create "authors")
+(-> (r/table-create "authors") (run conn))
 ```
 
 #### table-drop-db
@@ -119,7 +120,7 @@ Like `table-create-db` except that the db is the default db.
 Drop a table from a specific db. The table and all its data will be deleted.
 
 ```clojure
-(-> (r/db "test") (r/table-drop-db "authors"))
+(-> (r/db "test") (r/table-drop-db "authors") (run conn))
 ```
 
 #### table-drop
@@ -129,7 +130,7 @@ Drop a table from a specific db. The table and all its data will be deleted.
 Like `table-drop-db` except the default db is used.
 
 ```clojure
-(r/table-drop "authors")
+(-> (r/table-drop "authors") (run conn))
 ```
 
 #### index-create
@@ -142,20 +143,23 @@ Create a new secondary index with a given name on the specified table.
 (-> (r/table "authors")
   (r/index-create :author
                   (r/lambda [author]
-                    (r/get-field author :name))))
+                    (r/get-field author :name)))
+  (run conn))
 ;; Compound index
 (-> (r/table "authors")
   (r/index-create :name-tv-show
                   (r/lambda [author]
                     [(r/get-field author :name)
-                     (r/get-field author :tv-show)])))
+                     (r/get-field author :tv-show)]))
+  (run conn))
 ;; A multi index. The r/lambda of a multi index should return an array. It will allow
 ;; you to query based on whether a value is present in the returned array
 (-> (r/table "authors")
   (r/index-create :posts
                   (r/lambda [author]
                     (r/get-field author :posts)) ; returns an array
-    true)) ; :multi -> true
+    true) ; :multi -> true
+  (run conn))
 ```
 
 #### index-drop
@@ -165,7 +169,7 @@ Create a new secondary index with a given name on the specified table.
 Delete a previously created secondary index of this table.
 
 ```clojure
-(-> (r/table "authors") (r/index-drop :posts))
+(-> (r/table "authors") (r/index-drop :posts) (run conn))
 ```
 
 #### index-list
@@ -175,7 +179,7 @@ Delete a previously created secondary index of this table.
 List all the secondary indexes of this table.
 
 ```clojure
-(-> (r/table "authors") (r/index-list))
+(-> (r/table "authors") (r/index-list) (run conn))
 ```
 
 ### Writing data
@@ -212,10 +216,12 @@ an array of documents (a clojure vector of clojure maps).
                         :content "There are some words I've known since..."}]})
 
 (-> (r/table "authors")
-  (r/insert authors))
+  (r/insert authors)
+  (run conn))
 
 (-> (r/table "authors")
-  (r/insert jean-luc))
+  (r/insert jean-luc)
+  (run conn))
 ```
 
 Insert returns a map with the following attributes:
@@ -247,7 +253,8 @@ expression or a combination of the two. Accepts the following optional keys:
   (r/filter (r/lambda [row]
               (r/= "William Adama"
                 (r/get-field row :name))))
-  (r/update {:rank "Admiral"}))
+  (r/update {:rank "Admiral"})
+  (run conn))
 ;; Add a post to Jean-Luc
 (-> (r/table "authors")
   (r/filter (r/lambda [row]
@@ -258,7 +265,8 @@ expression or a combination of the two. Accepts the following optional keys:
       {:posts
        (r/append (r/get-field row :posts)
          {:title "Shakespeare"
-          :content "What a piece of work is man.."})})))
+          :content "What a piece of work is man.."})}))
+  (run conn))
 ```
 
 Update returns a map that contains the following attributes:
@@ -288,7 +296,8 @@ modifying when set to true (only valid for single row replacements).
 
 ```clojure
 (-> (r/table "authors") (r/get "7644aaf2-9928-4231-aa68-4e65e31bf219")
-  (r/replace {:tv-show "Jeeves"}))
+  (r/replace {:tv-show "Jeeves"})
+  (run conn))
 ```
 
 #### delete
@@ -308,6 +317,7 @@ set to true (only valid for single row deletes)
               (r/< (r/count (r/get-field row :posts))
                    3)))
   (r/delete)
+  (run conn))
 ```
 
 `delete` returns a map with the following attributes:
@@ -326,7 +336,8 @@ first_error contains the text of the first error.
 
 `([db-name])`
 
-Reference a database
+Reference a database. This will give you an error if you try to run it. If you want
+a list of tables use `r/table-list-db`
 
 ```clojure
 (r/db "test")
@@ -341,7 +352,7 @@ Select all documents on a table. This command can be chained with other commands
 do further processing on the data
 
 ```clojure
-(-> (r/db "test") (r/table "authors"))
+(-> (r/db "test") (r/table "authors") (run conn))
 ```
 #### table
 
@@ -350,7 +361,7 @@ do further processing on the data
 Like table-db except that it uses the default database.
 
 ```clojure
-(r/table "authors")
+(-> (r/table "authors") (run conn))
 ```
 
 #### get
@@ -361,7 +372,8 @@ Get a document by its primary key.
 
 ```clojure
 ;; After setting the secondary index :name on the table "authors"
-(-> (r/table "authors") (r/get "7644aaf2-9928-4231-aa68-4e65e31bf219"))
+(-> (r/table "authors") (r/get "7644aaf2-9928-4231-aa68-4e65e31bf219")
+    (run conn))
 ```
 
 #### get-all
@@ -373,7 +385,8 @@ Get all documents where the given value matches the value of the requested index
 ```clojure
 ;; After setting the secondary key :name on the table :authors
 (-> (r/table "authors")
-  (r/get-all ["William Adama"] :name))
+  (r/get-all ["William Adama"] :name)
+  (run conn))
 ```
 
 #### between
@@ -385,7 +398,7 @@ Get all documents between two keys. index can be the name of a secondary index.
 
 ```clojure
 ;; Assuming the primary key on our table is a number.
-(-> (r/table "authors") (r/between 10 20))
+(-> (r/table "authors") (r/between 10 20) (run conn))
 ```
 
 #### filter
@@ -401,7 +414,8 @@ as if the default did not exist
 ```clojure
 (-> (r/table "authors")
     (r/filter (r/lambda [row]
-                (r/= (r/get-field row :name) "William Adama"))))
+                (r/= (r/get-field row :name) "William Adama")))
+    (run conn))
 ```
 
 ### Joins
@@ -421,7 +435,8 @@ sequences are combined into a result row.
     (r/inner-join (r/table "dc")
       (lambda [marvel-row dc-row]
         (r/< (get-field marvel-row :strength)
-             (get-field dc-row :strength)))))
+             (get-field dc-row :strength))))
+    (run conn))
 ```
 
 #### outer-join
@@ -436,7 +451,8 @@ was found in the right table.
     (r/outer-join (r/table "dc")
       (r/lambda [marvel-row dc-row]
         (r/< (get-field marvel-row :strength)
-             (get-field dc-row :strength)))))
+             (get-field dc-row :strength))))
+    (run conn))
 ```
 
 #### eq-join
@@ -447,7 +463,8 @@ An efficient join that looks up elements in the right table by primary key.
 `index` defaults to `:id`
 
 ```clojure
-(-> (r/table "marvel") (r/eq-join "main_dc_collaborator" (r/table "dc")))
+(-> (r/table "marvel") (r/eq-join "main_dc_collaborator" (r/table "dc"))
+    (run conn))
 ```
 
 #### zip
@@ -459,7 +476,8 @@ of each member of the sequence.
 
 ```clojure
 (-> (r/table "marvel") (r/eq-join "main_dc_collaborator" (r/table "dc"))
-    (r/zip))
+    (r/zip)
+    (run conn))
 ```
 
 ### Transformations
@@ -473,7 +491,8 @@ Transform each element of the sequence by applying the given mapping function.
 ```clojure
 (-> (r/table "authors")
     (r/map (r/lambda [author]
-             (r/count (r/get-field author :posts)))))
+             (r/count (r/get-field author :posts))))
+    (run conn))
 ```
 
 #### with-fields
@@ -487,7 +506,8 @@ followed by pluck.
 
 ```clojure
 ;; Get a list of authors and their posts, excluding any authors that lack one.
-(-> (r/table "authors") (r/with-fields :name :posts))
+(-> (r/table "authors") (r/with-fields :name :posts)
+    (run conn))
 ```
 
 #### mapcat
@@ -500,7 +520,8 @@ Map a function over a sequence and then concatenate the results together
 ;; Get all of the posts of all authors
 (-> (r/table "authors")
     (r/mapcat (r/lambda [author]
-                (r/get-field author :posts))))
+                (r/get-field author :posts)))
+    (run conn))
 ```
 
 #### order-by
@@ -512,7 +533,8 @@ ordering. To specify order, wrap the key with `(r/asc ..)` or `(r/desc ..)`
 
 ```clojure
 (-> (r/table "marvel")
-    (r/order-by :enemies_vanquished :damsels_saved))
+    (r/order-by :enemies_vanquished :damsels_saved)
+    (run conn))
 ```
 
 #### skip
@@ -525,7 +547,8 @@ Skip a number of elements from the head of the sequence
 ;; Ignore the first authors sorted alphabetically
 (-> (r/table "authors")
     (r/order-by :name)
-    (r/skip 2))
+    (r/skip 2)
+    (run conn))
 ```
 
 #### limit
@@ -539,7 +562,8 @@ End the sequence after the given number of elements
 (-> (r/table "authors")
     (r/mapcat (r/lambda [author]
                 (r/get-field author :posts)))
-    (r/limit 10))
+    (r/limit 10)
+    (run conn))
 ```
 
 #### slice
@@ -551,7 +575,8 @@ Trim the sequence to within the bounds provided.
 ```clojure
 (-> (r/table "marvel")
     (r/order-by :strength)
-    (r/slice 5 10))
+    (r/slice 5 10)
+    (run conn))
 ```
 
 #### nth
@@ -562,7 +587,8 @@ Get the nth element of a sequence. Zero indexed.
 
 ```clojure
 (-> (r/table "authors")
-    (r/nth 1))
+    (r/nth 1)
+    (run conn))
 ```
 
 #### indexes-of
@@ -573,7 +599,7 @@ Get the indexes of an element in a sequence. If the argument is a predicate, get
 indexes of all elements matching it.
 
 ```clojure
-(r/indexes-of ["a" "b" "c"] "c")
+(-> (r/indexes-of ["a" "b" "c"] "c") (run conn))
 ```
 
 #### empty?
@@ -584,7 +610,8 @@ Test if a sequence is empty.
 
 ```clojure
 (-> (r/table "authors")
-    (r/empty?))
+    (r/empty?)
+    (run conn))
 ```
 
 #### union
@@ -596,7 +623,8 @@ Concatenate 2 sequences
 ```clojure
 (-> (r/table "marvel")
     (r/union
-      (r/table "dc")))
+      (r/table "dc"))
+    (run conn))
 ```
 
 #### sample
@@ -607,7 +635,8 @@ Select a number of elements from the sequence with uniform random distribution.
 
 ```clojure
 (-> (r/table "authors")
-    (r/sample 2))
+    (r/sample 2)
+    (run conn))
 ```
 
 ### Aggregation
@@ -625,7 +654,8 @@ function.
 ;; How many posts are there?
 (-> (r/table "authors")
     (r/map (r/lambda [author] (r/count (r/get-field :posts))))
-    (r/reduce (r/lambda [acc next] (r/+ acc next)) 0))
+    (r/reduce (r/lambda [acc next] (r/+ acc next)) 0)
+    (run conn))
 ```
 
 #### count
@@ -638,7 +668,8 @@ filter before count.
 
 ```clojure
 (-> (r/table "authors")
-    (r/count))
+    (r/count)
+    (run conn))
 ```
 
 #### distinct
@@ -651,7 +682,8 @@ Remove duplicates from the sequence.
 (-> (r/table "marvel")
     (r/mapcat (r/lambda [hero]
                 (r/get-field hero :villain-list)))
-    (r/distinct))
+    (r/distinct)
+    (run conn))
 ```
 
 #### grouped-map-reduce
@@ -674,13 +706,15 @@ each group are then mapped using the `mapping` function and reduced using the
           hero ; then
           acc ; else
           ))
-      {:name "none" :strength 0} ; base
-      ))
+      {:name "none" :strength 0}) ; base
+    (run conn))
 ```
 
 #### group-by
 
 `([sequence array operation-map])`
+
+*Work in Progress*
 
 Groups a sequence by one or more attributes and then applies a reduction.
 The third argument is a special object literal giving the kind of operation
@@ -693,7 +727,8 @@ At present group-by supports the following operations
 
 ```clojure
 (-> (r/table "marvel")
-    (r/group-by :weight-class {:avg :strength}))
+    (r/group-by :weight-class {:avg :strength})
+    (run conn))
 ```
 
 #### contains?
@@ -708,7 +743,8 @@ specified functions.
 (-> (r/table "marvel")
     (r/get "ironman")
     (r/get-field "opponents")
-    (r/contains? "superman"))
+    (r/contains? "superman")
+    (run conn))
 ```
 
 ### Document manipulation
@@ -723,7 +759,8 @@ or map that over a sequence
 ```clojure
 (-> (r/table "marvel")
     (r/get "IronMan")
-    (r/pluck :reactor-state :reactor-power))
+    (r/pluck :reactor-state :reactor-power)
+    (run conn))
 ```
 
 #### without
@@ -734,7 +771,8 @@ The opposite of pluck. Get a subset of an object by selecting some attributes to
 discard, or map that over a sequence.
 
 ```clojure
-(-> (r/table "marvel") (r/get "IronMan") (without :personal-victories-list))
+(-> (r/table "marvel") (r/get "IronMan") (without :personal-victories-list)
+    (run conn))
 ```
 
 #### merge
@@ -746,7 +784,8 @@ Merge objects. Right-preferential.
 ```clojure
 (-> (r/table "marvel") (r/get "IronMan")
     (r/merge (-> (r/table "loadouts")
-                 (r/get :alien-invasion-kit))))
+                 (r/get :alien-invasion-kit)))
+    (run conn))
 ```
 
 The query `literal` takes a single argument and it can be used to indicate merge
@@ -768,7 +807,8 @@ Append a value to an array
                  (r/append (r/get-field row :posts)
                            ;; Appending a new post
                            {:title "Earth"
-                            :content "Earth is a dream.."})))))
+                            :content "Earth is a dream.."}))))
+    (run conn))
 ```
 
 #### prepend
@@ -787,7 +827,8 @@ Prepend a value to an array
                  (r/prepend (r/get-field row :posts)
                               ;; Prepend a post
                               {:title "Cylons"
-                               :content "The cylon war is long over"})))))
+                               :content "The cylon war is long over"}))))
+    (run conn))
 ```
 
 #### difference
@@ -800,7 +841,8 @@ Remove the elements of one array from another array.
 (-> (r/table "marvel")
     (r/get "IronMan")
     (r/get-field :equipment)
-    (r/difference "Boots"))
+    (r/difference "Boots")
+    (run conn))
 ```
 
 #### set-insert
@@ -813,7 +855,8 @@ Add a value to an array as if the array was a set.
 (-> (r/table "marvel")
     (r/get "IronMan")
     (r/get-field "equipment")
-    (r/set-insert "new-boots"))
+    (r/set-insert "new-boots")
+    (run conn))
 ```
 
 #### set-union
@@ -826,7 +869,8 @@ Add several values to an array as if it was a set
 (-> (r/table "marvel")
     (r/get "IronMan")
     (r/get-field "equipment")
-    (r/set-union ["new-boots" "arc-reactor"]))
+    (r/set-union ["new-boots" "arc-reactor"])
+    (run conn))
 ```
 
 #### set-intersection
@@ -839,7 +883,8 @@ Intersect 2 arrays returning values that occur in both of them as a set.
 (-> (r/table "marvel")
     (r/get "IronMan")
     (r/get-field "equipment")
-    (r/set-intersection ["new-boots" "arc-reactor"]))
+    (r/set-intersection ["new-boots" "arc-reactor"])
+    (run conn))
 ```
 
 #### get-field
@@ -852,7 +897,8 @@ every object in the sequence, skipping objects that lack it.
 ```clojure
 (-> (r/table "marvel")
     (r/get "IronMan")
-    (r/get-field "first-appearance"))
+    (r/get-field "first-appearance")
+    (run conn))
 ```
 
 #### has-fields?
@@ -864,7 +910,8 @@ sequence so that al objects inside of it contain all the specified fields
 
 ```clojure
 (-> (r/table "marvel")
-    (r/has-fields "spouse"))
+    (r/has-fields "spouse")
+    (run conn))
 ```
 
 #### insert-at
@@ -875,7 +922,8 @@ Insert a value in to an array at a given index.
 
 ```clojure
 (-> ["IronMan" "SpiderMan"]
-    (r/insert-at 1 "Hulk"))
+    (r/insert-at 1 "Hulk")
+    (run conn))
 ```
 
 #### splice-at
@@ -886,7 +934,8 @@ Insert several values into an array at a given index.
 
 ```clojure
 (-> ["IronMan" "SpiderMan"]
-    (r/splice-at 1 ["Hulk" "Thor"]))
+    (r/splice-at 1 ["Hulk" "Thor"])
+    (run conn))
 ```
 
 #### delete-at
@@ -897,7 +946,8 @@ Remove an element from an array at a given index.
 
 ```clojure
 (-> ["IronMan" "Hulk" "SpiderMan"]
-    (r/delete-at 1))
+    (r/delete-at 1)
+    (run conn))
 ```
 
 #### change-at
@@ -908,7 +958,8 @@ Change a value in an array at a given index.
 
 ```clojure
 (-> ["IronMan" "Bruce" "SpiderMan"]
-    (r/change-at 1 "Hulk"))
+    (r/change-at 1 "Hulk")
+    (run conn))
 ```
 
 #### keys
@@ -920,7 +971,8 @@ Return an array containing all of the object's keys
 ```clojure
 (-> (r/table "authors")
     (r/get "7644aaf2-9928-4231-aa68-4e65e31bf219")
-    (r/keys))
+    (r/keys)
+    (run conn))
 ```
 
 ### String manipulation
@@ -936,7 +988,8 @@ https://code.google.com/p/re2/wiki/Syntax Accepts clojure regexp.
 (-> (r/table "users")
     (r/filter (r/lambda [user]
                 (r/match (r/get-field user :name)
-                         #"^A"))))
+                         #"^A")))
+    (run conn))
 ```
 
 ### Math and logic
@@ -985,20 +1038,22 @@ return the same time inside a query.
 ```clojure
 (-> (r/table "users")
     (r/insert {:name "John"
-               :subscription-date (r/now)}))
+               :subscription-date (r/now)})
+    (run conn))
 ```
 
 #### time
 
 `([year month day & [timezone]] [year month day hour minute second & [timezone])`
 
-Create a time object for a specific time.
+Create a time object for a specific time. Timezone is a string like: `"-06:00"`
 
 ```clojure
 ;; Update the birthdate of the user "John" to November 3rd, 1986 UTC
 (-> (r/table "user")
     (r/get "John")
-    (r/update {:birthdate (r/time 1986 11 3 "Z")]))
+    (r/update {:birthdate (r/time 1986 11 3 "Z")])
+    (run conn))
 ```
 
 #### epoch-time
@@ -1011,7 +1066,8 @@ Create a time object based on seconds since epoch.
 ;; Update the birthdate of the user "John" to November 3rd, 1986
 (-> (r/table "user")
     (r/get "john")
-    (r/update {:birthdate (r/epoch-time 531360000)}))
+    (r/update {:birthdate (r/epoch-time 531360000)})
+    (run conn))
 ```
 
 #### iso8601
@@ -1023,7 +1079,8 @@ Create a time object based on an iso8601 date-time string.
 ```clojure
 (-> (r/table "user")
     (r/get "John")
-    (r/update {:birth (r/iso8601 "1986-11-03T08:30:00-07:00")}))
+    (r/update {:birth (r/iso8601 "1986-11-03T08:30:00-07:00")})
+    (run conn))
 ```
 
 #### in-timezone
@@ -1036,7 +1093,8 @@ that take the timezone into account will be different.
 ```clojure
 (-> (r/now)
     (r/in-timezone "-08:00)
-    (r/hours))
+    (r/hours)
+    (run conn))
 ```
 
 #### timezone
@@ -1050,7 +1108,8 @@ Return the timezone of the time object
     (r/filter (r/lambda [user]
                 (r/= "-07:00"
                   (-> (r/get-field user :subscription-date)
-                      (r/timezone))))))
+                      (r/timezone)))))
+    (run conn))
 ```
 
 #### during
@@ -1063,7 +1122,8 @@ Returns whether the time is in the range [start-time end-time)
 (-> (r/table "posts")
     (r/filter (r/lambda [post]
                 (-> (r/get-field :date)
-                    (r/during (r/time 2013 12 1) (r/time 2013 12 10))))))
+                    (r/during (r/time 2013 12 1) (r/time 2013 12 10)))))
+    (run conn))
 ```
 
 #### date
@@ -1076,7 +1136,8 @@ Return a new time object only based on the day, month and year
 (-> (r/table "users")
     (r/filter (r/lambda [user]
                 (r/= (-> (r/now) (r/date))
-                  (r/get-field user :birthday)))))
+                  (r/get-field user :birthday))))
+    (run conn))
 ```
 
 #### time-of-day
@@ -1092,7 +1153,8 @@ time object.
     (r/filter (r/lambda [post]
                (r/> 12*60*60 ; Can be left as clojure.core/*
                  (-> (r/get-field post :date)
-                     (r/time-of-day))))))
+                     (r/time-of-day)))))
+    (run conn))
 ```
 
 ### Access time fields
@@ -1123,7 +1185,8 @@ Convert a time object to its ISO 8601 format.
 
 ```clojure
 (-> (r/now)
-    (r/to-iso8601))
+    (r/to-iso8601)
+    (run conn))
 ```
 
 #### ->epoch-time
@@ -1134,7 +1197,8 @@ Convert a time to its epoch time.
 
 ```clojure
 (-> (r/now)
-    (r/->epoch-time))
+    (r/->epoch-time)
+    (run conn))
 ```
 
 ### Control structures
@@ -1151,7 +1215,8 @@ Like an if.
              (r/branch (r/<= 100
                          (r/get-field hero :victories))
                        (r/+ (r/get-field hero :name) " is a superhero") ; then
-                       (r/+ (r/get-field hero :name) " is a hero")))))  ; else
+                       (r/+ (r/get-field hero :name) " is a hero"))))   ; else
+    (run conn))
 ```
 
 #### any
@@ -1161,7 +1226,7 @@ Like an if.
 A short circuiting or that returns a boolean
 
 ```clojure
-;; (r/any false false true)
+(-> (r/any false false true) (run conn))
 ```
 
 #### all
@@ -1171,7 +1236,7 @@ A short circuiting or that returns a boolean
 Returns true if all of its arguments are true (short-circuiting).
 
 ```clojure
-;; (r/all true true true)
+(-> (r/all true true true) (run conn))
 ```
 
 #### foreach
@@ -1186,7 +1251,8 @@ terms that function returns.
     (r/foreach (r/lambda [hero]
                  (-> (r/table "villains")
                      (r/get (r/get-field hero :villain-defeated)))))
-    (r/delete))
+    (r/delete)
+    (run conn))
 ```
 
 #### error
@@ -1197,7 +1263,7 @@ Throw a runtime error. If called with no arguments inside the second argument to
 default, re-throw the current error.
 
 ```clojure
-;; (r/error "kaput")
+(-> (r/error "kaput") (run conn))
 ```
 
 #### default
@@ -1213,7 +1279,8 @@ function it will be passed either the text of the error or NULL as its argument.
 (-> (r/table "projects")
     (r/map (r/lambda [p]
              (r/+ (r/default (r/get-field p :staff) 0)
-                  (r/default (r/get-field p :management) 0)))))
+                  (r/default (r/get-field p :management) 0))))
+    (run conn))
 ```
 
 #### parse-val
@@ -1226,7 +1293,7 @@ python. **Note that since these queries are functions and not methods, this
 function is hardly ever needed since it is already implicit.**
 
 ```clojure
-(r/parse-val [1 false "hello" :goodbye {:a 1}])
+(r/parse-val [1 false "hello" :goodbye])
 ```
 
 #### js
@@ -1236,7 +1303,7 @@ function is hardly ever needed since it is already implicit.**
 Create a javascript expression.
 
 ```clojure
-(r/js "1 + 1")
+(-> (r/js "1 + 1") (run conn))
 ```
 
 #### coerce-to
@@ -1250,7 +1317,8 @@ into an OBJECT, and any DATUM into a STRING.
 
 ```clojure
 (-> (r/table "marvel")
-    (r/coerce-to :array))
+    (r/coerce-to :array)
+    (run conn))
 ```
 
 #### type
@@ -1261,7 +1329,8 @@ Get the type of a value.
 
 ```clojure
 (-> (r/parse-val "hello!")
-    (r/type))
+    (r/type)
+    (run conn))
 ```
 
 #### info
@@ -1272,7 +1341,8 @@ Get information about a rql value
 
 ```clojure
 (-> (r/table "marvel")
-    (r/info))
+    (r/info)
+    (run conn))
 ```
 
 #### json
@@ -1282,7 +1352,7 @@ Get information about a rql value
 Parse a JSON string on the server.
 
 ```clojure
-(r/json "[1,2,3]")
+(-> (r/json "[1,2,3]") (run conn))
 ```
 
 ### Time constants
