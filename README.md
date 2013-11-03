@@ -17,10 +17,15 @@ These docs are - for now - loosely based on the python api docs
 (require '[bitemyapp.revise.query :as r])
 
 ;; connect returns the connection agent
-(let [conn (connect)
+(let [local-conn  (connect) ;; defaults to localhost
+      ;; pass in connection options map to specify beyond the defaults
+      remote-conn (connect {:host "99.99.99.1"
+                            :port 28015
+                            :auth-key ""})
       ;; running a query against a connection returns a promise, the API
       ;; and underlying implementation are asynchronous.
       response (-> (r/db "test") (r/table-create-db "authors") (run conn))]
+      ;; dereference the promise to block on it.
       (println @response))
 ```
 
