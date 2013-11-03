@@ -1,10 +1,18 @@
 # Revise
 
-Clojure RethinkDB client. Under development.
+Clojure RethinkDB client. Asynchronous, lock-free, efficient, and easy to use!
 
-## Usage
+Query RethinkDB using semantics familiar to any Clojure programmer.
 
-Don't. Seriously. You'll know it if you're supposed to be here.
+## Stability
+
+Alpha-grade at this point, we're seeking people who want to use Clojure and RethinkDB to help us harden it up.
+
+We're confident this is already one of the more stable, feature-complete, and safe libraries.
+
+## Leiningen
+
+!["Leiningen version"](https://clojars.org/revise/latest-version.svg)
 
 ## Introduction
 
