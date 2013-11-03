@@ -13,13 +13,17 @@
 
 (defn close
   "Close the connection"
-  ([] (when-let [current @current-connection]
-        (close current)))
   ([conn]
-     (.close (:out conn))
-     (.close (:in conn))
-     (.close (:socket conn))
-     true))
+     (let [c @conn
+           out (:out c)
+           in  (:in c)
+           socket (:socket c)
+           reader-signal (:reader-signal c)]
+       (deliver reader-signal :stop)
+       (.close out)
+       (.close in)
+       (.close socket)
+       true)))
 
 (defn send-number
   [^DataOutputStream out n]
@@ -82,9 +86,10 @@
     (deliver prom result)
     (dissoc-in conn [:waiting token])))
 
-(defn read-into-conn [conn-agent]
+(defn read-into-conn [conn-agent reader-signal]
   ;; (println "reader started")
-  (while (not (:inputShutdown (bean (@conn-agent :socket))))
+  (while (not (and (= (when (realized? reader-signal) @reader-signal) :stop)
+                   (:inputShutdown (bean (@conn-agent :socket)))))
     ;; (spit "out.log" "ran read-into-conn")
     (let [resp (fetch-response (@conn-agent :in))]
       (send-off conn-agent deliver-result (inflate resp)))))
@@ -101,8 +106,10 @@
         socket (Socket. (:host conn-map) (:port conn-map))
         out (DataOutputStream. (.getOutputStream socket))
         in  (DataInputStream. (.getInputStream socket))
+        reader-signal (promise)
         conn (agent {:socket  socket
                      :token   token
+                     :reader-signal reader-signal
                      :waiting {}
                      :out     out
                      :in      in})]
@@ -110,7 +117,7 @@
     (send-auth-key out auth-key)
     (assert (= (read-init-response in) "SUCCESS"))
     ;; Dunno if this is kosher.
-    (future (read-into-conn conn))
+    (future (read-into-conn conn reader-signal))
     conn))
 
 (defn send-protobuf
@@ -139,56 +146,3 @@
   (let [prom (promise)]
     (send-off conn send-bump-token prom term)
     prom))
-
-;; Clearly not final implementation
-;; (defonce current-connection (atom nil))
-;; (declare current-connection) ; Just so it compiles for now
-
-;; (clojure.core/send-off blah (fn [m _] (update-in m [:a] inc)) nil)
-
-;; (defn send
-;;   "Send a start query to the current connection, assume everything's open."
-;;   [^PersistentProtocolBufferMap term]
-;;   (if-let [current @current-connection]
-;;     (let [type :START
-;;           token (inc (:token current))
-;;           {:keys [in out]} current]
-;;       (send-protobuf out (pb/protobuf Query {:query term
-;;                                              :token token
-;;                                              :type type}))
-;;       (swap! current-connection update-in [:token] inc)
-;;       (let [r (fetch-response in)]
-;;         (inflate r)))))
-
-;; (defn connect
-;;   [& [conn-map]]
-;;   (let [default {:host "127.0.0.1"
-;;                  :port 28015
-;;                  :token 0
-;;                  :auth-key ""}
-;;         conn-map (merge default conn-map)
-;;         current @current-connection]
-;;     (when current
-;;       (close current))
-;;     (try
-;;       (let [token (:token conn-map)
-;;             auth-key (:auth-key conn-map)
-;;             socket (Socket. (:host conn-map) (:port conn-map))
-;;             out (DataOutputStream. (.getOutputStream socket))
-;;             in  (DataInputStream. (.getInputStream socket))
-;;             conn (reset! current-connection
-;;                          {:socket socket
-;;                           :token token
-;;                           ;; Data*Streams to send/receive bytes
-;;                           :out out
-;;                           :in in})]
-;;         (send-version out)
-;;         ;; todo
-;;         (send-auth-key out auth-key)
-;;         (assert (= (read-init-response in) "SUCCESS"))
-;;         conn)
-;;       (catch ConnectException e
-;;         (println "Couldn't connect to" (str (:host conn-map)
-;;                                             ":"
-;;                                             (:port conn-map))
-;;                  (.getMessage e))))))

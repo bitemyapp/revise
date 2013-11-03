@@ -97,7 +97,7 @@
           drop   (run drop-authors conn)
           create (run create-authors conn)
           dump   (-> (r/table-list) (run conn))]
-      (is (= {} @dump)))))
+      (is (= '(["authors"]) (:response @dump))))))
 
 (deftest queries
   (testing "Can query RethinkDB"
