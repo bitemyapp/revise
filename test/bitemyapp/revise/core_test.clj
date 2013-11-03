@@ -91,82 +91,6 @@
 ;;              dump dump-response
 ;;              william william-response)))))
 
-(deftest administrivia
-  (testing "Can create and drop tables in RethinkDB"
-    (let [conn   (connect)
-          drop   (run drop-authors conn)
-          create (run create-authors conn)
-          dump   (-> (r/table-list) (run conn))]
-      (is (= '(["authors"]) (:response @dump))))))
-
-(deftest queries
-  (testing "Can query RethinkDB"
-    (let [conn (connect)
-          ;; When connecting: SUCCESS
-          ;; {:token 1, :response (("tv_shows"))}
-          drop   (run drop-authors conn)
-          create (run create-authors conn)
-          insert (run insert-authors conn)
-          dump (-> (r/table "authors") (run))
-          william (run filter-william)
-
-          posts (-> (r/table "authors") (r/filter
-                                         (r/lambda [row]
-                                                   (r/= 2
-                                                        (r/count (r/get-field row :posts)))))
-                    (run))
-
-          cherry-pick (-> (r/table "authors") (r/get "7644aaf2-9928-4231-aa68-4e65e31bf219") (run))
-
-          updated (-> (r/table "authors") (r/update {:type "fictional"}) (run))
-
-          admiral-updated (-> (r/table "authors")
-                              (r/filter (r/lambda [row]
-                                                  (r/= "William Adama"
-                                                       (r/get-field row :name))))
-                              (r/update {:rank "Admiral"})
-                              (run))
-
-          wat (-> (r/table "authors")
-                  (r/filter (r/lambda [row]
-                                      (r/= "Jean-Luc Picard"
-                                           (r/get-field row :name))))
-                  (r/update
-                   (r/lambda [row]
-                             {:posts
-                              (r/append (r/get-field row :posts)
-                                        {:title "Shakespeare"
-                                         :content "What a piece of work is man.."})}))
-                  (run))
-
-          deleted (-> (r/table "authors")
-                      (r/filter (r/lambda [row]
-                                          (r/< (r/count (r/get-field row :posts))
-                                               3)))
-                      (r/delete)
-                      (run))
-
-          second-dump (-> (r/db "test") (r/table-db "authors") (run))
-
-          closed (close conn)]
-      (are [x y] (= x y)
-      conn    {}
-      drop    {}
-      create  {}
-      insert  []
-      dump    []
-      william []
-      posts   []
-      cherry-pick []
-      updated []
-      admiral-updated []
-      wat []
-      deleted []
-      second-dump []
-      closed {}))))
-
-;;; I'm replacing the authors table because it doens't work with plenty of the
-;;; api. I'll be removing duplicates in time.
 ;;; Order based on the README
 
 ;;; -----------------------------------------------------------------------
@@ -516,193 +440,196 @@
                 r/january r/february r/march r/april r/may r/june r/july
                 r/august r/september r/october r/november r/december]))
 
-;;; MODIFY THIS AFTER PROMISES STUFF IS WORKING :-)?
-(defn resp [r] (:response r))
-(def rr (comp resp run))
-
 (deftest queries
-  (testing "Manipulating databases"
-    (is (= (rr create-database) [{:created 1}]))
-    (is (contains? (set (first (rr db-list)))
-                   "revise_test_db"))
-    (is (= (rr drop-database)   [{:dropped 1}])))
+  (let [conn (connect)
+        rr (fn [term]
+             (:response @(run term conn)))
+        er (fn [term]
+             (:error @(run term conn)))]
+    (testing "Manipulating databases"
+      (is (= (rr create-database) [{:created 1}]))
+      (is (contains? (set (first (rr db-list)))
+                     "revise_test_db"))
+      (is (= (rr drop-database)   [{:dropped 1}])))
 
-  (testing "Manipulating tables"
-    (are [x y] (= x y)
-         (rr create-table)                 [{:created 1}]
-         (rr create-table-optargs)         [{:created 1}]
-         (rr drop-table)                   [{:dropped 1}]
-         (rr create-index)                 [{:created 1}]
-         (rr create-multi-index)           [{:created 1}]
-         (set (first (rr list-index)))     #{"demo" "email"}
-         (rr drop-index)                   [{:dropped 1}]))
+    (testing "Manipulating tables"
+      (are [x y] (= x y)
+           (rr create-table)                 [{:created 1}]
+           (rr create-table-optargs)         [{:created 1}]
+           (rr drop-table)                   [{:dropped 1}]
+           (rr create-index)                 [{:created 1}]
+           (rr create-multi-index)           [{:created 1}]
+           (set (first (rr list-index)))     #{"demo" "email"}
+           (rr drop-index)                   [{:dropped 1}]))
 
-  (testing "Writing data"
-    (are [x y] (= x y)
-         (:inserted (first (rr insert-multi)))     6
-         (:inserted (first (rr insert-single)))    1
-         (:replaced (first (rr update-append)))    7
-         (:replaced (first (rr update-lambda)))    7
-         (:replaced (first (rr replace-test)))     1
-         (:deleted (first (rr delete)))            1))
+    (testing "Writing data"
+      (are [x y] (= x y)
+           (:inserted (first (rr insert-multi)))     6
+           (:inserted (first (rr insert-single)))    1
+           (:replaced (first (rr update-append)))    7
+           (:replaced (first (rr update-lambda)))    7
+           (:replaced (first (rr replace-test)))     1
+           (:deleted (first (rr delete)))            1))
 
-  (testing "Selecting data"
-    (are [x y] (= x y)
-         (:error (run reference-db))               :runtime-error
-         (count (rr select-table))                 6
-         (first (rr get-doc))                      {:admin false :age 21,
-                                                    :country "us"
-                                                    :email "aa@ex.com"
-                                                    :gender "m" :name "aa"
-                                                    :posts ["a" "aa" "aaa"]
-                                                    :permission 1}
-         (count (rr get-all))                      2
-         (count (rr between))                      3
-         (count (rr filter-test))                  2
-         (first (rr create-permissions))           {:created 1}
-         (:inserted (first (rr add-permissions)))  3))
+    (testing "Selecting data"
+      (are [x y] (= x y)
+           (er reference-db)                         :runtime-error
+           (count (rr select-table))                 6
+           (first (rr get-doc))                      {:admin false :age 21,
+                                                      :country "us"
+                                                      :email "aa@ex.com"
+                                                      :gender "m" :name "aa"
+                                                      :posts ["a" "aa" "aaa"]
+                                                      :permission 1}
+           (count (rr get-all))                      2
+           (count (rr between))                      3
+           (count (rr filter-test))                  2
+           (first (rr create-permissions))           {:created 1}
+           (:inserted (first (rr add-permissions)))  3))
 
-  (testing "Joins"
-    (are [x y] (= x y)
-         ;; 6 x 3 = 18 - cartesian product
-         (count (rr inner-join))    18
-         (count (rr outer-join))    18
-         (count (rr eq-join))       6
-         (count (rr zip))           6))
+    (testing "Joins"
+      (are [x y] (= x y)
+           ;; 6 x 3 = 18 - cartesian product
+           (count (rr inner-join))    18
+           (count (rr outer-join))    18
+           (count (rr eq-join))       6
+           (count (rr zip))           6))
 
-  (testing "Transformations"
-    (are [x y] (= x y)
-         (set (rr mapped))                    #{21 22 23}
-         (count (rr with-fields))             6
-         (set (rr mapcatted))                 #{"aa" "bb" "ee" "aaa"
-                                                "a" "b" "c" "e" "eeeee"}
-         (:age (first (rr ordered-desc)))     23
-         (:age (first (rr ordered-asc)))      21
-         (count (rr ordered))                 6
-         (count (rr skip))                    4
-         (count (rr limit))                   2
-         (count (rr slice))                   2
-         (:age (first (rr nth-item)))         21
-         (first (rr indexes-of))              [0 2 4]
-         (rr empty-array)                     [true]
-         (count (rr union))                   9
-         (count (rr sample))                  2))
+    (testing "Transformations"
+      (are [x y] (= x y)
+           (set (rr mapped))                    #{21 22 23}
+           (count (rr with-fields))             6
+           (set (rr mapcatted))                 #{"aa" "bb" "ee" "aaa"
+                                                  "a" "b" "c" "e" "eeeee"}
+           (:age (first (rr ordered-desc)))     23
+           (:age (first (rr ordered-asc)))      21
+           (count (rr ordered))                 6
+           (count (rr skip))                    4
+           (count (rr limit))                   2
+           (count (rr slice))                   2
+           (:age (first (rr nth-item)))         21
+           (first (rr indexes-of))              [0 2 4]
+           (rr empty-array)                     [true]
+           (count (rr union))                   9
+           (count (rr sample))                  2))
 
-  (testing "Aggregation"
-    (are [x y] (= x y)
-         (first (rr count-posts))             10
-         (set (first (rr distinct-array)))    #{1 2 3 4}
-         (first (rr grouped-map-reduce))      [{:group 21, :reduction 4}
-                                               {:group 22, :reduction 6}
-                                               {:group 23, :reduction 0}]
-         (first (rr grouped-count))           [{:group {:age 21}, :reduction 2}
-                                               {:group {:age 22}, :reduction 3}
-                                               {:group {:age 23}, :reduction 1}]
-         ;; TODO - grouped-sum + grouped-average
-         (first (rr contains))                true))
+    (testing "Aggregation"
+      (are [x y] (= x y)
+           (first (rr count-posts))             10
+           (set (first (rr distinct-array)))    #{1 2 3 4}
+           (first (rr grouped-map-reduce))      [{:group 21, :reduction 4}
+                                                 {:group 22, :reduction 6}
+                                                 {:group 23, :reduction 0}]
+           (first (rr grouped-count))           [{:group {:age 21}, :reduction 2}
+                                                 {:group {:age 22}, :reduction 3}
+                                                 {:group {:age 23}, :reduction 1}]
+           ;; TODO - grouped-sum + grouped-average
+           (first (rr contains))                true))
 
-  (testing "Document Manipulation"
-    (are [x y] (= x y)
-         (first (rr pluck))                        {:age 21, :name "aa"}
-         (first (rr without))                      {:country "us"
-                                                    :email "aa@ex.com"
-                                                    :gender "m"
-                                                    :posts ["a" "aa" "aaa"]}
-         (:replaced (first (rr append)))           1
-         (:replaced (first (rr prepend)))          1
-         (:posts (first (rr (r/get users "aa"))))  ["aaaah" "a" "aa" "aaa"
-                                                    "wheee"]
-         (first (rr difference))                   ["aaaah" "wheee"]
-         (rr set-insert)                           [[1 2 3]]
-         (rr set-union)                            [[1 2 3 4]]
-         ;; wtf
-         ;(rr set-intersection) [[1 2 3 [4 5 6]]] ??
-         (rr get-field)                ["aa"]
-         (rr has-fields)               [true]
-         (rr insert-at)                [[1 2 3 4 5]]
-         (rr splice-at)                [[1 2 3 4 5 6 7]]
-         (rr delete-at)                [[1 4 5]]
-         (rr change-at)                [[1 2 3 4 5]]
-         (set (first (rr keys-test)))  #{"gender" "name" "permission"
-                                         "admin" "posts" "country" "email" "age"}))
+    (testing "Document Manipulation"
+      (are [x y] (= x y)
+           (first (rr pluck))                        {:age 21, :name "aa"}
+           (first (rr without))                      {:country "us"
+                                                      :email "aa@ex.com"
+                                                      :gender "m"
+                                                      :posts ["a" "aa" "aaa"]}
+           (:replaced (first (rr append)))           1
+           (:replaced (first (rr prepend)))          1
+           (:posts (first (rr (r/get users "aa"))))  ["aaaah" "a" "aa" "aaa"
+                                                      "wheee"]
+           (first (rr difference))                   ["aaaah" "wheee"]
+           (rr set-insert)                           [[1 2 3]]
+           (rr set-union)                            [[1 2 3 4]]
+           ;; wtf
+                                        ;(rr set-intersection) [[1 2 3 [4 5 6]]] ??
+           (rr get-field)                ["aa"]
+           (rr has-fields)               [true]
+           (rr insert-at)                [[1 2 3 4 5]]
+           (rr splice-at)                [[1 2 3 4 5 6 7]]
+           (rr delete-at)                [[1 4 5]]
+           (rr change-at)                [[1 2 3 4 5]]
+           (set (first (rr keys-test)))  #{"gender" "name" "permission"
+                                           "admin" "posts" "country" "email" "age"}))
 
-  (testing "String Manipulation"
-    (is (= (rr match-string) [["Also"]])))
+    (testing "String Manipulation"
+      (is (= (rr match-string) [["Also"]])))
 
-  (testing "Math and Logic"
-    (are [x y] (= x y)
-         (rr math)      [2]
-         (rr =test)     [true]
-         (rr not=test)  [true]
-         (rr >test)     [true]
-         (rr >=test)    [true]
-         (rr <test)     [true]
-         (rr <=test)    [true]
-         (rr notatest)  [true]))
-  ;; HMMM
-  ;; (testing "Dates and Times"
-  ;;   (are [x y] (= x y)
+    (testing "Math and Logic"
+      (are [x y] (= x y)
+           (rr math)      [2]
+           (rr =test)     [true]
+           (rr not=test)  [true]
+           (rr >test)     [true]
+           (rr >=test)    [true]
+           (rr <test)     [true]
+           (rr <=test)    [true]
+           (rr notatest)  [true]))
+    ;; HMMM
+    ;; (testing "Dates and Times"
+    ;;   (are [x y] (= x y)
 
-  ;;        (set (keys (first (rr now))))  #{:epoch_time :reql_type :timezone}
-  ;;        (first (rr time-test))         {:reql_type "TIME",
-  ;;                                        :epoch_time 1.129801205502E9,
-  ;;                                        :timezone "-06:00"}
-  ;;        (first (rr epoch-time))        {:reql_type "TIME",
-  ;;                                        :epoch_time 531360000,
-  ;;                                        :timezone "+00:00"}
-  ;;        (first (rr iso8601))           {:reql_type "TIME",
-  ;;                                        :epoch_time 1.129801205502E9,
-  ;;                                        :timezone "-06:00"}
-  ;;        (first (rr in-timezone))       {:reql_type "TIME",
-  ;;                                        :epoch_time 1.129801205502E9,
-  ;;                                        :timezone "-07:00"}
-  ;;        (rr timezone)                  ["-06:00"]
-  ;;        (rr during)                    [true]
-  ;;        (first (rr date))              {:reql_type "TIME",
-  ;;                                        :epoch_time 1129766400,
-  ;;                                        :timezone "-06:00"}
-  ;;        (rr time-of-day)               [34805.502]
-  ;;        (rr ->iso8601)                 ["2005-10-20T03:40:05.502-06:00"]
-  ;;        (rr ->epoch-time)              [1129801205]))
+    ;;        (set (keys (first (rr now))))  #{:epoch_time :reql_type :timezone}
+    ;;        (first (rr time-test))         {:reql_type "TIME",
+    ;;                                        :epoch_time 1.129801205502E9,
+    ;;                                        :timezone "-06:00"}
+    ;;        (first (rr epoch-time))        {:reql_type "TIME",
+    ;;                                        :epoch_time 531360000,
+    ;;                                        :timezone "+00:00"}
+    ;;        (first (rr iso8601))           {:reql_type "TIME",
+    ;;                                        :epoch_time 1.129801205502E9,
+    ;;                                        :timezone "-06:00"}
+    ;;        (first (rr in-timezone))       {:reql_type "TIME",
+    ;;                                        :epoch_time 1.129801205502E9,
+    ;;                                        :timezone "-07:00"}
+    ;;        (rr timezone)                  ["-06:00"]
+    ;;        (rr during)                    [true]
+    ;;        (first (rr date))              {:reql_type "TIME",
+    ;;                                        :epoch_time 1129766400,
+    ;;                                        :timezone "-06:00"}
+    ;;        (rr time-of-day)               [34805.502]
+    ;;        (rr ->iso8601)                 ["2005-10-20T03:40:05.502-06:00"]
+    ;;        (rr ->epoch-time)              [1129801205]))
 
-  (testing "Time fields access"
-    (are [x y] (= x y)
-         (rr year)        [2005]
-         (rr month)       [10]
-         (rr day)         [20]
-         (rr day-of-week) [4]
-         (rr day-of-year) [293]
-         (rr hours)       [3]
-         (rr minutes)     [40]
-         (rr seconds)     [5.502]))
+    (testing "Time fields access"
+      (are [x y] (= x y)
+           (rr year)        [2005]
+           (rr month)       [10]
+           (rr day)         [20]
+           (rr day-of-week) [4]
+           (rr day-of-year) [293]
+           (rr hours)       [3]
+           (rr minutes)     [40]
+           (rr seconds)     [5.502]))
 
-  (testing "Control structures"
-    (are [x y] (= x y)
-         (rr branch)        ["tis true!"]
-         (rr any)           [true]
-         (rr all)           [true]
-         (rr error)         ["Wheeee"]
-         (rr default)       ["oooooh"]
-         ;; parse-val fails why? should it be make-array??
-         ; (rr parse-val)
-         (rr js)            [2]
-         (rr coerce-to)     [[["a" 1]]]
-         (rr type-test)     ["ARRAY"]
-         (first (rr info))  {:db {:name "test", :type "DB"}
-                             :indexes ["demo"], :name "revise_users"
-                             :primary_key "name", :type "TABLE"}
-         (rr json)          [[1 2 3]]))
+    (testing "Control structures"
+      (are [x y] (= x y)
+           (rr branch)        ["tis true!"]
+           (rr any)           [true]
+           (rr all)           [true]
+           (rr error)         ["Wheeee"]
+           (rr default)       ["oooooh"]
+           ;; parse-val fails why? should it be make-array??
+                                        ; (rr parse-val)
+           (rr js)            [2]
+           (rr coerce-to)     [[["a" 1]]]
+           (rr type-test)     ["ARRAY"]
+           (first (rr info))  {:db {:name "test", :type "DB"}
+                               :indexes ["demo"], :name "revise_users"
+                               :primary_key "name", :type "TABLE"}
+           (rr json)          [[1 2 3]]))
 
-  (testing "Time constants"
-    (is (= (first (rr time-constants))
-           [1 2 3 4 5 6 7 1 2 3 4 5 6 7 8 9 10 11 12])))
+    (testing "Time constants"
+      (is (= (first (rr time-constants))
+             [1 2 3 4 5 6 7 1 2 3 4 5 6 7 8 9 10 11 12])))
 
-  (testing "Cleanup"
-    (are [x y] (= x y)
-         (first (rr (-> (r/db "test")
-                        (r/table-drop-db "revise_users")))) {:dropped 1}
-         (first (rr (-> (r/db "test")
-                        (r/table-drop-db "revise_permissions")))) {:dropped 1})))
+    (testing "Cleanup"
+      (are [x y] (= x y)
+           (first (rr (-> (r/db "test")
+                          (r/table-drop-db "revise_users")))) {:dropped 1}
+           (first (rr (-> (r/db "test")
+                          (r/table-drop-db "revise_permissions")))) {:dropped 1}))
+
+    (close conn)))
 
 ;; (def prom (let [my-conn (connect)] (run my-conn (-> (r/db "test") (r/table-create-db "authors")))))
 ;; (def data (let [my-conn (connect)] [my-conn (run my-conn (-> (r/db "test") (r/table-create-db "authors")))]))
