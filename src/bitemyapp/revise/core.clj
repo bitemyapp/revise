@@ -9,9 +9,3 @@
   [q conn]
   ;; (send (compile-term q)))
   (send-term (compile-term q) conn))
-
-(defn -main
-  []
-  (connect)
-  (prn (-> (r/db "test") (r/table-list-db) (run)))
-  (close))
