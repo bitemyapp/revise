@@ -11,19 +11,19 @@
             [bitemyapp.revise.query :as r]
             [bitemyapp.revise.response :refer [inflate]]))
 
-(defn send-random-delay
-  [^PersistentProtocolBufferMap term]
-  (if-let [current @current-connection]
-    (let [type :START
-          token (inc (:token current))
-          {:keys [in out]} current]
-      (send-protobuf out (pb/protobuf Query {:query term
-                                             :token token
-                                             :type type}))
-      (Thread/sleep (rand-int 100))
-      (swap! current-connection update-in [:token] inc)
-      (let [r (fetch-response in)]
-        (inflate r)))))
+;; (defn send-random-delay
+;;   [^PersistentProtocolBufferMap term]
+;;   (if-let [current @current-connection]
+;;     (let [type :START
+;;           token (inc (:token current))
+;;           {:keys [in out]} current]
+;;       (send-protobuf out (pb/protobuf Query {:query term
+;;                                              :token token
+;;                                              :type type}))
+;;       (Thread/sleep (rand-int 100))
+;;       (swap! current-connection update-in [:token] inc)
+;;       (let [r (fetch-response in)]
+;;         (inflate r)))))
 
 (def drop-authors (-> (r/db "test") (r/table-drop-db "authors")))
 (def create-authors (-> (r/db "test") (r/table-create-db "authors")))
@@ -76,36 +76,44 @@
   (try-try-again {:sleep nil :tries 10 :catch [clojure.lang.ExceptionInfo]} test-match-results))
 
 
-(deftest ^:race-condition race-condition
-  (let [conn (connect)
-        drop (-> (r/db "test") (r/table-drop-db "authors") (run))
-        create (-> (r/db "test") (r/table-create-db "authors") (run))
-        _ (run insert-authors)]
-    (testing "Can produce race condition"
-      (with-redefs [;; bitemyapp.revise.core/run run-random-delay
-                    bitemyapp.revise.connection/send-term send-random-delay]
-        (try-until-race)))
-    (testing "But I can get sane results normally"
-      (let [[dump william] (map deref (dump-and-william))]
-        (are [x y] (= x y)
-             dump dump-response
-             william william-response)))))
+;; (deftest ^:race-condition race-condition
+;;   (let [conn (connect)
+;;         drop (-> (r/db "test") (r/table-drop-db "authors") (run))
+;;         create (-> (r/db "test") (r/table-create-db "authors") (run))
+;;         _ (run insert-authors)]
+;;     (testing "Can produce race condition"
+;;       (with-redefs [;; bitemyapp.revise.core/run run-random-delay
+;;                     bitemyapp.revise.connection/send-term send-random-delay]
+;;         (try-until-race)))
+;;     (testing "But I can get sane results normally"
+;;       (let [[dump william] (map deref (dump-and-william))]
+;;         (are [x y] (= x y)
+;;              dump dump-response
+;;              william william-response)))))
+
+(deftest administrivia
+  (testing "Can create and drop tables in RethinkDB"
+    (let [conn   (connect)
+          drop   (run drop-authors conn)
+          create (run create-authors conn)
+          dump   (-> (r/table-list) (run conn))]
+      (is (= {} @dump)))))
 
 (deftest queries
   (testing "Can query RethinkDB"
     (let [conn (connect)
-
           ;; When connecting: SUCCESS
           ;; {:token 1, :response (("tv_shows"))}
-          drop  (run drop-authors)
-          create (run create-authors)
-          insert (run insert-authors)
+          drop   (run drop-authors conn)
+          create (run create-authors conn)
+          insert (run insert-authors conn)
           dump (-> (r/table "authors") (run))
           william (run filter-william)
 
-          posts (-> (r/table "authors") (r/filter (r/lambda [row]
-                                                            (r/= 2
-                                                                 (r/count (r/get-field row :posts)))))
+          posts (-> (r/table "authors") (r/filter
+                                         (r/lambda [row]
+                                                   (r/= 2
+                                                        (r/count (r/get-field row :posts)))))
                     (run))
 
           cherry-pick (-> (r/table "authors") (r/get "7644aaf2-9928-4231-aa68-4e65e31bf219") (run))
@@ -695,3 +703,6 @@
                         (r/table-drop-db "revise_users")))) {:dropped 1}
          (first (rr (-> (r/db "test")
                         (r/table-drop-db "revise_permissions")))) {:dropped 1})))
+
+;; (def prom (let [my-conn (connect)] (run my-conn (-> (r/db "test") (r/table-create-db "authors")))))
+;; (def data (let [my-conn (connect)] [my-conn (run my-conn (-> (r/db "test") (r/table-create-db "authors")))]))

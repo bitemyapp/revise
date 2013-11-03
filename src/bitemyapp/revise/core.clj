@@ -6,8 +6,9 @@
             [bitemyapp.revise.query :as r]))
 
 (defn run
-  [q]
-  (send-term (compile-term q)))
+  [q conn]
+  ;; (send (compile-term q)))
+  (send-term (compile-term q) conn))
 
 (defn -main
   []

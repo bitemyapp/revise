@@ -91,7 +91,6 @@
    :backtrace (:backtrace pb)})
 
 
-
 (defn inflate
   "Deserialize the response protobuffer"
   [pb]

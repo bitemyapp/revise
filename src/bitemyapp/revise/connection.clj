@@ -11,9 +11,6 @@
             [bitemyapp.revise.protodefs :refer [Query Response]]
             [bitemyapp.revise.response :refer [inflate]]))
 
-;; Clearly not final implementation
-;; (defonce current-connection (atom nil))
-(declare current-connection) ; Just so it compiles for now
 (defn close
   "Close the connection"
   ([] (when-let [current @current-connection]
@@ -23,15 +20,6 @@
      (.close (:in conn))
      (.close (:socket conn))
      true))
-
-(defn fetch-response
-  [^DataInputStream in]
-  (let [size (byte-array 4)]
-    (.read in size 0 4)
-    (let [size (parse-little-endian-32 size)
-          resp (byte-array size)]
-      (.read in resp 0 size)
-      (pb/protobuf-load Response resp))))
 
 (defn send-number
   [^DataOutputStream out n]
@@ -51,7 +39,6 @@
     (send-number out c)
     (.writeChars out auth-key)))
 
-;; God damn
 (defn read-init-response
   [^DataInputStream in]
   (let [s (StringBuilder.)
@@ -63,41 +50,44 @@
           (do (.append s (char x1))
               (recur (.read in x))))))))
 
-(defn send-protobuf
-  "Send a protobuf to the socket's outputstream"
-  [^DataOutputStream out ^PersistentProtocolBufferMap data]
-  (let [msg (pb/protobuf-dump data)
-        c (count msg)
-        full-msg (concat-byte-arrays (to-little-endian-byte-32 c)
-                                     msg)]
-    (.write out full-msg 0 (+ 4 c))))
+(defn dissoc-in
+  "Dissociates an entry from a nested associative structure returning a new
+  nested structure. keys is a sequence of keys. Any empty maps that result
+  will not be present in the new structure."
+  [m [k & ks :as keys]]
+  (if ks
+    (if-let [nextmap (get m k)]
+      (let [newmap (dissoc-in nextmap ks)]
+        (if (seq newmap)
+          (assoc m k newmap)
+          (dissoc m k)))
+      m)
+    (dissoc m k)))
 
-;; (clojure.core/send-off blah (fn [m _] (update-in m [:a] inc)) nil)
+(defn fetch-response
+  [^DataInputStream in]
+  (let [size (byte-array 4)]
+    (.read in size 0 4)
+    (let [size (parse-little-endian-32 size)
+          resp (byte-array size)]
+      (.read in resp 0 size)
+      (pb/protobuf-load Response resp))))
 
-(defn send-term
-  [^PersistentProtocolBufferMap term conn]
-  (let [type :START
-        {:keys [in out last-token]} conn
-        token (inc last-token)
-        prom (promise)]
-      (send-protobuf out (pb/protobuf Query {:query term
-                                             :token token
-                                             :type type}))
-      (swap! current-connection update-in [:token] inc)))
+(defn deliver-result [conn result]
+  (let [token (:token result)
+        prom (get (:waiting conn) token)]
+    ;; (println "conn: " conn)
+    ;; (println "result: " result)
+    ;; (println "prom: " prom)
+    (deliver prom result)
+    (dissoc-in conn [:waiting token])))
 
-;; (defn send
-;;   "Send a start query to the current connection, assume everything's open."
-;;   [^PersistentProtocolBufferMap term]
-;;   (if-let [current @current-connection]
-;;     (let [type :START
-;;           token (inc (:token current))
-;;           {:keys [in out]} current]
-;;       (send-protobuf out (pb/protobuf Query {:query term
-;;                                              :token token
-;;                                              :type type}))
-;;       (swap! current-connection update-in [:token] inc)
-;;       (let [r (fetch-response in)]
-;;         (inflate r)))))
+(defn read-into-conn [conn-agent]
+  ;; (println "reader started")
+  (while (not (:inputShutdown (bean (@conn-agent :socket))))
+    ;; (spit "out.log" "ran read-into-conn")
+    (let [resp (fetch-response (@conn-agent :in))]
+      (send-off conn-agent deliver-result (inflate resp)))))
 
 (defn connect
   [& [conn-map]]
@@ -116,10 +106,59 @@
                      :waiting {}
                      :out     out
                      :in      in})]
-    ;; (send-version out)
-    ;; (send-auth-key out auth-key)
-    ;; (println "When connecting:" (read-init-response in))
+    (send-version out)
+    (send-auth-key out auth-key)
+    (assert (= (read-init-response in) "SUCCESS"))
+    ;; Dunno if this is kosher.
+    (future (read-into-conn conn))
     conn))
+
+(defn send-protobuf
+  "Send a protobuf to the socket's outputstream"
+  [^DataOutputStream out ^PersistentProtocolBufferMap data]
+  (let [msg (pb/protobuf-dump data)
+        c (count msg)
+        full-msg (concat-byte-arrays (to-little-endian-byte-32 c)
+                                     msg)]
+    (.write out full-msg 0 (+ 4 c))))
+
+(defn send-bump-token [conn prom ^PersistentProtocolBufferMap term]
+  (let [{:keys [in out token]} conn
+        type :START]
+    (send-protobuf out (pb/protobuf Query {:query term
+                                           :token token
+                                           :type type}))
+    ;; (println conn)
+    ;; (println "sent protobuf have new-token: " new-token)
+    ;; (println "inc'd: " (inc (:token conn)))
+    (-> (update-in conn [:token] inc)
+        (assoc-in [:waiting token] prom))))
+
+(defn send-term
+  [^PersistentProtocolBufferMap term conn]
+  (let [prom (promise)]
+    (send-off conn send-bump-token prom term)
+    prom))
+
+;; Clearly not final implementation
+;; (defonce current-connection (atom nil))
+;; (declare current-connection) ; Just so it compiles for now
+
+;; (clojure.core/send-off blah (fn [m _] (update-in m [:a] inc)) nil)
+
+;; (defn send
+;;   "Send a start query to the current connection, assume everything's open."
+;;   [^PersistentProtocolBufferMap term]
+;;   (if-let [current @current-connection]
+;;     (let [type :START
+;;           token (inc (:token current))
+;;           {:keys [in out]} current]
+;;       (send-protobuf out (pb/protobuf Query {:query term
+;;                                              :token token
+;;                                              :type type}))
+;;       (swap! current-connection update-in [:token] inc)
+;;       (let [r (fetch-response in)]
+;;         (inflate r)))))
 
 ;; (defn connect
 ;;   [& [conn-map]]
@@ -148,7 +187,6 @@
 ;;         (send-auth-key out auth-key)
 ;;         (assert (= (read-init-response in) "SUCCESS"))
 ;;         conn)
-
 ;;       (catch ConnectException e
 ;;         (println "Couldn't connect to" (str (:host conn-map)
 ;;                                             ":"
