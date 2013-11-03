@@ -11,20 +11,6 @@
             [bitemyapp.revise.query :as r]
             [bitemyapp.revise.response :refer [inflate]]))
 
-;; (defn send-random-delay
-;;   [^PersistentProtocolBufferMap term]
-;;   (if-let [current @current-connection]
-;;     (let [type :START
-;;           token (inc (:token current))
-;;           {:keys [in out]} current]
-;;       (send-protobuf out (pb/protobuf Query {:query term
-;;                                              :token token
-;;                                              :type type}))
-;;       (Thread/sleep (rand-int 100))
-;;       (swap! current-connection update-in [:token] inc)
-;;       (let [r (fetch-response in)]
-;;         (inflate r)))))
-
 (def drop-authors (-> (r/db "test") (r/table-drop-db "authors")))
 (def create-authors (-> (r/db "test") (r/table-create-db "authors")))
 
@@ -74,22 +60,6 @@
 
 (defn try-until-race []
   (try-try-again {:sleep nil :tries 10 :catch [clojure.lang.ExceptionInfo]} test-match-results))
-
-
-;; (deftest ^:race-condition race-condition
-;;   (let [conn (connect)
-;;         drop (-> (r/db "test") (r/table-drop-db "authors") (run))
-;;         create (-> (r/db "test") (r/table-create-db "authors") (run))
-;;         _ (run insert-authors)]
-;;     (testing "Can produce race condition"
-;;       (with-redefs [;; bitemyapp.revise.core/run run-random-delay
-;;                     bitemyapp.revise.connection/send-term send-random-delay]
-;;         (try-until-race)))
-;;     (testing "But I can get sane results normally"
-;;       (let [[dump william] (map deref (dump-and-william))]
-;;         (are [x y] (= x y)
-;;              dump dump-response
-;;              william william-response)))))
 
 ;;; Order based on the README
 
@@ -630,6 +600,3 @@
                           (r/table-drop-db "revise_permissions")))) {:dropped 1}))
 
     (close conn)))
-
-;; (def prom (let [my-conn (connect)] (run my-conn (-> (r/db "test") (r/table-create-db "authors")))))
-;; (def data (let [my-conn (connect)] [my-conn (run my-conn (-> (r/db "test") (r/table-create-db "authors")))]))
