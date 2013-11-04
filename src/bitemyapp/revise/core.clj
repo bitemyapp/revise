@@ -7,5 +7,4 @@
 
 (defn run
   [q conn]
-  ;; (send (compile-term q)))
   (send-term (compile-term q) conn))
