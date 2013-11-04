@@ -8,7 +8,7 @@ Query RethinkDB using semantics familiar to any Clojure programmer.
 
 Alpha-grade at this point, we're seeking people who want to use Clojure and RethinkDB to help us harden it up.
 
-We're confident this is already one of the more stable, feature-complete, and safe libraries.
+We're confident this is already one of the more feature-complete community-maintained libraries.
 
 ## Leiningen
 
