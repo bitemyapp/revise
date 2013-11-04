@@ -14,6 +14,10 @@ We're confident this is already one of the more feature-complete community-maint
 
 !["Leiningen version"](https://clojars.org/revise/latest-version.svg)
 
+## Connection Management
+
+[A brief explanation is here](connections.md)
+
 ## Introduction
 
 These docs are - for now - loosely based on the python api docs. The driver
