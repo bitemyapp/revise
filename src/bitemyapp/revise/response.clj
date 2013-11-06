@@ -1,5 +1,5 @@
 (ns bitemyapp.revise.response
-  "Doing stuff with the response?")
+  "Parsing a response from rethinkdb")
 
 (defmulti response
   "Inner response"
