@@ -111,7 +111,7 @@ List the database names in the system.
 
 Create a table on the specified database. The following options are available:
 
-* `:primary-key` The name of the primary key. Default: `id`.
+* `:primary-key` The name of the primary key. Default: `:id`.
 * `:durability` If set to `:soft`, this enables soft durability on this table:
 writes will be acknowledged by the server immediately and flushed to disk in the
 background. Default is `:hard` (acknowledgement of writes happens after data has been
@@ -163,25 +163,25 @@ Create a new secondary index with a given name on the specified table.
 
 ```clojure
 (-> (r/table "authors")
-  (r/index-create :author
-                  (r/lambda [author]
-                    (r/get-field author :name)))
-  (run conn))
+    (r/index-create :author
+                    (r/lambda [author]
+                      (r/get-field author :name)))
+    (run conn))
 ;; Compound index
 (-> (r/table "authors")
-  (r/index-create :name-tv-show
-                  (r/lambda [author]
-                    [(r/get-field author :name)
-                     (r/get-field author :tv-show)]))
-  (run conn))
+    (r/index-create :name-tv-show
+                    (r/lambda [author]
+                      [(r/get-field author :name)
+                       (r/get-field author :tv-show)]))
+    (run conn))
 ;; A multi index. The r/lambda of a multi index should return an array. It will allow
 ;; you to query based on whether a value is present in the returned array
 (-> (r/table "authors")
-  (r/index-create :posts
-                  (r/lambda [author]
-                    (r/get-field author :posts)) ; returns an array
-    true) ; :multi -> true
-  (run conn))
+    (r/index-create :posts
+                    (r/lambda [author]
+                      (r/get-field author :posts)) ; returns an array
+      true) ; :multi -> true
+    (run conn))
 ```
 
 #### index-drop
@@ -207,10 +207,21 @@ List all the secondary indexes of this table.
 ### Writing data
 #### insert
 
-`([table data])`
+`([table data & {:as optargs}])`
 
-Insert json documents into a table. Accepts a single json document (a clojure map) or
-an array of documents (a clojure vector of clojure maps).
+Insert json documents into a table. Accepts a single json document (a clojure map)
+or an array of documents (a clojure vector of clojure maps).
+
+Accepts the following options:
+
+* `:upsert` A `bool`. Default is true. If true it will overwrite documents that
+already exist.
+* `:durability` `:soft` or `:hard`. Override the durability of the table for this
+operation.
+* `:return-vals` A `bool`. Only valid for single object inserts. If `true` you
+get back the row you inserted on the key `:nev_val`. And if you overwrote a row
+it will be in `:old_val`
+
 
 ```clojure
 (def authors [{:name "William Adama" :tv-show "Battlestar Galactica"
@@ -227,23 +238,19 @@ an array of documents (a clojure vector of clojure maps).
                         :rating 4
                         :content "I, Laura Roslin, ..."},
                        {:title "They look like us",
-                        :content "The Cylons have the ability..."}]}
-
-              {:name "Jean-Luc Picard", :tv-show "Star Trek TNG",
-               :posts [{:title "Civil rights",
-                        :content "There are some words I've known since..."}]}])
+                        :content "The Cylons have the ability..."}]}])
 
 (def jean-luc {:name "Jean-Luc Picard", :tv-show "Star Trek TNG",
                :posts [{:title "Civil rights",
                         :content "There are some words I've known since..."}]})
 
 (-> (r/table "authors")
-  (r/insert authors)
-  (run conn))
+    (r/insert authors)
+    (run conn))
 
 (-> (r/table "authors")
-  (r/insert jean-luc)
-  (run conn))
+    (r/insert jean-luc :return-vals true)
+    (run conn))
 ```
 
 Insert returns a map with the following attributes:
@@ -257,6 +264,10 @@ encountered while inserting, first_error contains the text of the first error.
 * `:generated_keys` A list of generated primary key values deleted and skipped:
 0 for an insert operation.
 
+If you specified :return-vals true you will also get the following keys:
+* `:nev_val` The value of the object you inserted
+* `:old_val` The value of the object you overwrote (`nil` if you didn't)
+
 #### update
 
 `([stream-or-single-selection lambda1-or-obj])`
@@ -264,8 +275,11 @@ encountered while inserting, first_error contains the text of the first error.
 Update JSON documents in a table. Accepts a JSON document (clojure map), a RQL
 expression or a combination of the two. Accepts the following optional keys:
 
-* `:durability` Default: `:soft`
-* `:return-vals` Default: `true`
+* `:durability` `:soft` or `:hard` - Override the table's durability for this
+operation.
+* `:return-vals` A `bool`. Only valid for single-row modifications. If `true`
+return the new value in `:new_val` and the old value in `:old_val`.
+* `non-atomic` A `bool`. Allow the server to run non-atomic operations.
 
 ```clojure
 ;; Make all authors be fictional
@@ -279,16 +293,16 @@ expression or a combination of the two. Accepts the following optional keys:
   (run conn))
 ;; Add a post to Jean-Luc
 (-> (r/table "authors")
-  (r/filter (r/lambda [row]
-              (r/= "Jean-Luc Picard"
-                (r/get-field row :name))))
-  (r/update
-    (r/lambda [row]
-      {:posts
-       (r/append (r/get-field row :posts)
-         {:title "Shakespeare"
-          :content "What a piece of work is man.."})}))
-  (run conn))
+    (r/filter (r/lambda [row]
+                (r/= "Jean-Luc Picard"
+                  (r/get-field row :name))))
+    (r/update
+      (r/lambda [row]
+        {:posts
+         (r/append (r/get-field row :posts)
+           {:title "Shakespeare"
+            :content "What a piece of work is man.."})}))
+    (run conn))
 ```
 
 Update returns a map that contains the following attributes:
@@ -310,16 +324,17 @@ occured, first_error contains the text of the first error.
 Replace documents in a table. The new document must have the same primary key as the
 original document. Accepts the following optional arguments:
 
-* `:non-atomic` allow non-atomic updates.
-* `:durability` Default: `:soft`; Override the table or query's default durability
-setting.
-* `:return-vals` Default: `true`; Return the old and new values of the row you're
+* `:non-atomic` Allow non-atomic updates.
+* `:durability` `:soft` or `:hard`. Override the table or query's default
+durability setting.
+* `:return-vals` A `bool` Return the old and new values of the row you're
 modifying when set to true (only valid for single row replacements).
 
 ```clojure
-(-> (r/table "authors") (r/get "7644aaf2-9928-4231-aa68-4e65e31bf219")
-  (r/replace {:tv-show "Jeeves"})
-  (run conn))
+;; Assuming :name is the primary key on the table
+(-> (r/table "authors") (r/get "Wooster")
+    (r/replace {:tv-show "Jeeves"} :return-vals true)
+    (run conn))
 ```
 
 #### delete
@@ -329,17 +344,17 @@ modifying when set to true (only valid for single row replacements).
 Delete the rows in a selection. Accepts the following optional arguments:
 
 * `:durability` Default: `:soft`; Override the table or query's default durability
-setting
-* `:return-vals` Default: `true`; Return the old value of the row you're deleting when
-set to true (only valid for single row deletes)
+setting. Other possible values: `:hard`
+* `:return-vals` Default: `true`; Return the old value of the row you're deleting
+when set to true (only valid for single row deletes) on the key `:old_val`
 
 ```clojure
 (-> (r/table "authors")
-  (r/filter (r/lambda [row]
-              (r/< (r/count (r/get-field row :posts))
-                   3)))
-  (r/delete)
-  (run conn))
+    (r/filter (r/lambda [row]
+                (r/< (r/count (r/get-field row :posts))
+                     3)))
+    (r/delete)
+    (run conn))
 ```
 
 `delete` returns a map with the following attributes:
@@ -351,6 +366,12 @@ been deleted, that row will be skipped.
 * `:errors` The number of errors encountered while deleting if errors occured,
 first_error contains the text of the first error.
 * `:inserted` Replaced, and unchanged: all 0 for a delete operation.
+
+If you deleted only one row and `return-vals` is `true` then you also get the
+following keys:
+
+* `:new_val` Is nil.
+* `:old_val` Contains the value of the document you deleted
 
 ### Selecting data
 
@@ -407,8 +428,8 @@ Get all documents where the given value matches the value of the requested index
 ```clojure
 ;; After setting the secondary key :name on the table :authors
 (-> (r/table "authors")
-  (r/get-all ["William Adama"] :name)
-  (run conn))
+    (r/get-all ["William Adama"] :name)
+    (run conn))
 ```
 
 #### between
@@ -1173,7 +1194,7 @@ time object.
 ;; Posts submitted before noon
 (-> (r/table "posts")
     (r/filter (r/lambda [post]
-               (r/> 12*60*60 ; Can be left as clojure.core/*
+               (r/> (* 12 60 60) ; Can be left as clojure.core/*
                  (-> (r/get-field post :date)
                      (r/time-of-day)))))
     (run conn))

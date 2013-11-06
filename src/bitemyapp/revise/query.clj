@@ -461,9 +461,11 @@ At present group-by supports the following operations
 Calls its function with the row to be updated and then merges the result of
 that call
 
-Optargs: :non-atomic -> bool
-         :durability -> str
-         :return-vals -> bool"
+Optargs: :non-atomic -> bool - Allow the server to run non-atomic operations
+         :durability -> :soft or :hard - Override the table durability for this
+operation
+         :return-vals -> bool - Only valid for single-row modifications. If true
+return the new value in :new_val and the old one in old_val"
   [stream-or-single-selection lambda1-or-obj
    & {:as optargs}]
   (if-not optargs
@@ -474,8 +476,10 @@ Optargs: :non-atomic -> bool
 (defn delete
   "Deletes all the rows in a selection
 
-Optargs: :durability -> str
-         :return-vals -> bool"
+Optargs: :durability -> :hard or :soft - Override the table or query's default
+                                         durability setting.
+         :return-vals -> bool - Only valid for single row deletions. If true
+                                get the value you deleted in :old_val"
   [stream-or-single-selection & {:as optargs}]
   (if-not optargs
     (query :DELETE [stream-or-single-selection])
@@ -499,9 +503,11 @@ Optargs: :non-atomic -> bool
   "Insert into a table. If upsert is true, overwrites entries with the
 same primary key (otherwise errors)
 
-Optargs: :upsert -> bool
-         :durability -> str
-         :return-vals -> bool"
+Optargs: :upsert -> bool - If true -> overwrite the data if it already exists
+         :durability -> :soft or :hard -> Overrule the durability with which the
+                                          table was created
+         :return-vals -> bool - Only valid for single object inserts. If true
+                                get back the row you inserted on the key :nev_val"
   [table obj-or-sq & {:as optargs}]
   (if-not optargs
     (query :INSERT [table obj-or-sq])
