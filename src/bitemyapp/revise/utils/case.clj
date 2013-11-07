@@ -40,3 +40,8 @@
   [m]
   (zipmap (map (comp s/upper-case name) (keys m))
           (map (comp s/upper-case name) (vals m))))
+
+(defn capitalize-keys
+  [m]
+  (zipmap (map (comp s/upper-case name) (keys m))
+          (vals m)))

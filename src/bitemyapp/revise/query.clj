@@ -6,7 +6,7 @@
                             distinct count empty? nth
                             group-by type replace time])
   (:require [bitemyapp.revise.utils.case :refer [snake-case-keys
-                                                 capitalize-map]]))
+                                                 capitalize-keys]]))
 
 (defn datum?
   [m]
@@ -397,7 +397,7 @@ At present group-by supports the following operations
         (-> (if (keyword? operation)
               {operation operation}
               operation)
-            capitalize-map)]
+            capitalize-keys)]
     (query :GROUPBY [sq array operation-obj])))
 
 (defn inner-join

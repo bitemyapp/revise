@@ -759,22 +759,28 @@ each group are then mapped using the `mapping` function and reduced using the
 
 #### group-by
 
-`([sequence array operation-map])`
-
-*Work in Progress*
+`([sequence keys-array operation-map])`
 
 Groups a sequence by one or more attributes and then applies a reduction.
-The third argument is a special object literal giving the kind of operation
+The third argument is a special literal giving the kind of operation
 to be performed and anay necessary arguments.
 
 At present group-by supports the following operations
-- :count - count the size of the group
-- {:sum attr} - sum the values of the given attribute accross the group
-- {:avg attr} - average the values of the given attribute accross the group"
+* :count - count the size of the group
+* {:sum attr} - sum the values of the given attribute accross the group
+* {:avg attr} - average the values of the given attribute accross the group"
 
 ```clojure
 (-> (r/table "marvel")
-    (r/group-by :weight-class {:avg :strength})
+    (r/group-by [:weight-class] {:avg :strength})
+    (run conn))
+
+(-> (r/table "marvel")
+    (r/group-by [:age :weight-class] :count)
+    (run conn))
+
+(-> (r/table "marvel")
+    (r/group-by [:weight-class] {:sum :foes-defeated})
     (run conn))
 ```
 

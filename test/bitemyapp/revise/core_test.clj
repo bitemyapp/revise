@@ -279,7 +279,7 @@
 (def set-union
   (r/set-union [1 2 3] [2 3 4]))
 (def set-intersection
-  (r/set-insert [1 2 3] [3 4 5]))
+  (r/set-intersection [1 2 3] [3 4 5]))
 (def get-field
   (-> users
       (r/get "aa")
@@ -493,7 +493,16 @@
            (first (rr grouped-count))           [{:group {:age 21}, :reduction 2}
                                                  {:group {:age 22}, :reduction 3}
                                                  {:group {:age 23}, :reduction 1}]
-           ;; TODO - grouped-sum + grouped-average
+           (set (first (rr grouped-sum)))       #{{:group {:country "in"}, :reduction 3}
+                                                  {:group {:country "mx"}, :reduction 3}
+                                                  {:group {:country "fr"}, :reduction 2}
+                                                  {:group {:country "us"}, :reduction 2}
+                                                  {:group {:country "ca"}, :reduction 2}}
+           (set (first (rr grouped-average)))   #{{:group {:country "ca"}, :reduction 22}
+                                                  {:group {:country "in"}, :reduction 22}
+                                                  {:group {:country "mx"}, :reduction 21}
+                                                  {:group {:country "fr"}, :reduction 23}
+                                                  {:group {:country "us"}, :reduction 21.5}}
            (first (rr contains))                true))
 
     (testing "Document Manipulation"
@@ -510,8 +519,7 @@
            (first (rr difference))                   ["aaaah" "wheee"]
            (rr set-insert)                           [[1 2 3]]
            (rr set-union)                            [[1 2 3 4]]
-           ;; wtf
-                                        ;(rr set-intersection) [[1 2 3 [4 5 6]]] ??
+           (rr set-intersection)         [[3]]
            (rr get-field)                ["aa"]
            (rr has-fields)               [true]
            (rr insert-at)                [[1 2 3 4 5]]
