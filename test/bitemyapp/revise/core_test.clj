@@ -37,7 +37,9 @@
 (def insert-authors (-> (r/db "test") (r/table-db "authors")
                         (r/insert authors)))
 
-(def filter-william (-> (r/table "authors") (r/filter (r/lambda [row] (r/= (r/get-field row :name) "William Adama")))))
+(def filter-william (-> (r/table "authors")
+                        (r/filter
+                         (r/lambda [row] (r/= (r/get-field row :name) "William Adama")))))
 
 (def dump-response (set authors))
 
@@ -416,6 +418,7 @@
              (:response @(run term conn)))
         er (fn [term]
              (:error @(run term conn)))]
+
     (testing "Manipulating databases"
       (is (= (rr create-database) [{:created 1}]))
       (is (contains? (set (first (rr db-list)))

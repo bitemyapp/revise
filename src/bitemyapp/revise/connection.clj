@@ -14,9 +14,9 @@
 (defn close
   "Close the connection"
   ([conn]
-     (let [c @conn
-           out (:out c)
-           in  (:in c)
+     (let [c      @conn
+           out    (:out c)
+           in     (:in c)
            socket (:socket c)
            reader-signal (:reader-signal c)]
        (deliver reader-signal :stop)
