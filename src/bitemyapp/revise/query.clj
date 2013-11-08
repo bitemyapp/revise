@@ -6,7 +6,7 @@
                             distinct count empty? nth
                             group-by type replace time])
   (:require [bitemyapp.revise.utils.case :refer [snake-case-keys
-                                                 capitalize-map]]))
+                                                 uppercase-keys]]))
 
 (defn datum?
   [m]
@@ -382,7 +382,6 @@ given filter"
   ([sq lambda1 lambda1-2 lambda2 base]
      (query :GROUPED_MAP_REDUCE [sq lambda1 lambda1-2 lambda2] {:base base})))
 
-;;; TODO
 (defn group-by
   "Groups a sequence by one or more attributes and then applies a reduction.
 The third argument is a special object literal giving the kind of operation
@@ -397,7 +396,7 @@ At present group-by supports the following operations
         (-> (if (keyword? operation)
               {operation operation}
               operation)
-            capitalize-map)]
+            uppercase-keys)]
     (query :GROUPBY [sq array operation-obj])))
 
 (defn inner-join
