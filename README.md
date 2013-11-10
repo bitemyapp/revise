@@ -96,7 +96,7 @@ After dereferencing the promise the return value will be the same as `run`.
 
 ## Compiling a query manually
 
-`run` and `run-async` have an implicit call to `bitemyapp.revise.protoengine/compile`.
+`run` and `run-async` have an implicit call to `bitemyapp.revise.protoengine/compile-term`.
 This compiles the query into protocol buffers. If you know about the official
 RethinkDB API and you want to inspect the protocol buffers Revise gives you, you
 can compile a query using that function. To send manually compiled queries to the
