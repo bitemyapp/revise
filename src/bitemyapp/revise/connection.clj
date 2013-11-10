@@ -68,6 +68,14 @@
       m)
     (dissoc m k)))
 
+(defn socket-error? [e]
+  (not (nil?
+        (re-find #"No method in multimethod 'initial' for dispatch value: null"
+                 (:message (bean e))))))
+
+(defn socket-error [cause]
+  (Exception. (str "Connection has failed, reconnect to continue. Caused by: " cause)))
+
 (defn fetch-response
   [^DataInputStream in]
   (let [size (byte-array 4)]
@@ -80,19 +88,25 @@
 (defn deliver-result [conn result]
   (let [token (:token result)
         prom (get (:waiting conn) token)]
-    ;; (println "conn: " conn)
-    ;; (println "result: " result)
-    ;; (println "prom: " prom)
     (deliver prom result)
     (dissoc-in conn [:waiting token])))
 
-(defn read-into-conn [conn-agent reader-signal]
-  ;; (println "reader started")
+(defn fail-with-error [conn error]
+  (let [promises (:waiting conn)]
+    (doseq [prom promises]
+      (deliver prom error)))
+  (throw error))
+
+(defn read-into-conn [conn reader-signal]
   (while (not (and (= (when (realized? reader-signal) @reader-signal) :stop)
-                   (:inputShutdown (bean (@conn-agent :socket)))))
-    ;; (spit "out.log" "ran read-into-conn")
-    (let [resp (fetch-response (@conn-agent :in))]
-      (send-off conn-agent deliver-result (inflate resp)))))
+                   (:inputShutdown (bean (@conn :socket)))))
+    (try
+      (let [resp (fetch-response (@conn :in))]
+        (when (= resp {})
+          (throw (socket-error "deserialized response was {}.")))
+        (send-off conn deliver-result (inflate resp)))
+      (catch Exception e
+          (send-off conn fail-with-error e)))))
 
 (defn connect
   [& [conn-map]]
@@ -132,12 +146,12 @@
 (defn send-bump-token [conn prom ^PersistentProtocolBufferMap term]
   (let [{:keys [in out token]} conn
         type :START]
-    (send-protobuf out (pb/protobuf Query {:query term
-                                           :token token
-                                           :type type}))
-    ;; (println conn)
-    ;; (println "sent protobuf have new-token: " new-token)
-    ;; (println "inc'd: " (inc (:token conn)))
+    (try
+      (send-protobuf out (pb/protobuf Query {:query term
+                                             :token token
+                                             :type type}))
+      (catch Exception e
+        (send-off conn fail-with-error e)))
     (-> (update-in conn [:token] inc)
         (assoc-in [:waiting token] prom))))
 
