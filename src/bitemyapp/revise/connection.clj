@@ -98,8 +98,9 @@
   (throw error))
 
 (defn read-into-conn [conn reader-signal]
-  (while (not (and (= (when (realized? reader-signal) @reader-signal) :stop)
-                   (:inputShutdown (bean (@conn :socket)))))
+  (while (not (or (agent-error conn)
+                  (and (= (when (realized? reader-signal) @reader-signal) :stop)
+                       (:inputShutdown (bean (@conn :socket))))))
     (try
       (let [resp (fetch-response (@conn :in))]
         (when (= resp {})
