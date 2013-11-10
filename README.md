@@ -66,7 +66,7 @@ values:
 
 Connect will return an agent to which you can send queries.
 
-To close the agent use the function `close` with the agent as argument.
+To close the connection use the function `close` with the agent as argument.
 
 ## Sending queries
 
@@ -98,10 +98,10 @@ After dereferencing the promise the return value will be the same as `run`.
 
 `run` and `run-async` have an implicit call to `bitemyapp.revise.protoengine/compile`.
 This compiles the query into protocol buffers. If you know about the official
-RethinkDB API and you want to inspect the protocol buffers Revise give you, you
+RethinkDB API and you want to inspect the protocol buffers Revise gives you, you
 can compile a query using that function. To send manually compiled queries to the
 database, use `send-term` in the `connection` namespace. That will be the
-equivalent of using `run-async`
+equivalent of using `run-async`.
 
 ## API
 
