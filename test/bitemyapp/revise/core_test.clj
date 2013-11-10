@@ -412,12 +412,13 @@
                 r/january r/february r/march r/april r/may r/june r/july
                 r/august r/september r/october r/november r/december]))
 
+;; Testing the blocking run
 (deftest queries
   (let [conn (connect)
         rr (fn [term]
-             (:response @(run term conn)))
+             (:response (run term conn)))
         er (fn [term]
-             (:error @(run term conn)))]
+             (:error (run term conn)))]
 
     (testing "Manipulating databases"
       (is (= (rr create-database) [{:created 1}]))

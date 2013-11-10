@@ -23,7 +23,7 @@ We're confident this is already one of the more feature-complete community-maint
 These docs are - for now - loosely based on the python api docs. The driver
 works on version `1.9` and `1.10` (in our testing so far) of RethinkDB.
 
-## Connecting to rethinkdb
+## Usage
 
 ```clojure
 (require '[bitemyapp.revise.connection :refer [connect close]])
@@ -36,18 +36,72 @@ works on version `1.9` and `1.10` (in our testing so far) of RethinkDB.
       remote-conn (connect {:host "99.99.99.1"
                             :port 28015
                             :auth-key ""})
-      ;; running a query against a connection returns a promise, the API
-      ;; and underlying implementation are asynchronous.
-      response (-> (r/db "test") (r/table-create-db "authors") (run local-conn))]
+      ;; Run a query and return the result. Blocks as long as it needs to
+      ;; get a result (or an error)
+      response1 (-> (r/db "test") (r/table-create-db "authors") (run local-conn))
+      ;; We may be having issues so we specify a timeout to run
+      response2 (-> (r/db "test") (r/table-list-db) (run remote-conn 15000))
+      ;; We want to run a query asynchronously - giving up the error handling
+      response3 (-> (r/db-list) (run-async local-conn))]
   ;; dereference the promise to block on it.
-  (println @response)
-  ;; We are done using the connection
+  (println @response3)
+  ;; We are done using the local connection
   (close local-conn))
 ```
 
-## Compiling and sending a query
+## Connecting to RethinkDB
 
-Queries are compiled and sent to a connection with the fn `bitemyapp.revise.core/run`.
+Inside the namespace `bitemyapp.revise.connection` there are 2 functions we need:
+
+* `connect` `([& conn-map])`
+* `close` `([conn])`
+
+`connect` takes an optional connection map to override any or all of the default
+values:
+
+* `:host` `"127.0.0.1"`
+* `:port` `28015`
+* `:token` `0` The token of the first query to the connection. Autoincrements.
+* `:auth-key` `""` The authentication key.
+
+Connect will return an agent to which you can send queries.
+
+To close the agent use the function `close` with the agent as argument.
+
+## Sending queries
+
+Inside the namespace `bitemyapp.revise.core` there are again 2 functions we need:
+
+* `run` `([query connection & [timeout]])`
+* `run-async` `([query connection])`
+
+Our queries are compiled and sent to the connection using those two functions.
+
+`run` takes an optional timeout in milliseconds (default `10000`) and will block
+until it has a response or it timeouts. It will throw when it timeouts or the
+agent dies due to an exception when sending a query.
+
+`run` will return a map which includes the autoincrementing `token` that was
+implicitly sent to the agent and either a `:response` in case the query was
+successful or an `:error`, `:response` and `:backtrace` in case there was
+an error with our request (in this case the driver doesn't throw an exception).
+
+Alternatively we might decide to use `run-async` to send and run queries
+asynchronously. This will return us a response which we can dereference.
+
+Note that `run-async` gives up the error handling of `run`. The agent _might_
+die and you will have to check for it manually.
+
+After dereferencing the promise the return value will be the same as `run`.
+
+## Compiling a query manually
+
+`run` and `run-async` have an implicit call to `bitemyapp.revise.protoengine/compile`.
+This compiles the query into protocol buffers. If you know about the official
+RethinkDB API and you want to inspect the protocol buffers Revise give you, you
+can compile a query using that function. To send manually compiled queries to the
+database, use `send-term` in the `connection` namespace. That will be the
+equivalent of using `run-async`
 
 ## API
 

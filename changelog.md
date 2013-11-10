@@ -1,3 +1,10 @@
+# 0.0.4
+* Added connection error handling when sending queries.
+* The function `run` from previous versions is now `run-async`.
+* The actual `run` now dereferences the promise automatically with a timeout
+and throws when it timeouts or the agent dies. It now takes an optional timeout
+which defaults to 10000 (ms)
+
 # 0.0.3
 
 * Fixed a bug where `(group-by .. {:avg :smthing})` would return the error:
