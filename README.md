@@ -28,7 +28,7 @@ works on version `1.9` and `1.10` (in our testing so far) of RethinkDB.
 ```clojure
 (require '[bitemyapp.revise.connection :refer [connect close]])
 (require '[bitemyapp.revise.query :as r])
-(require '[bitemyapp.revise.core :refer [run]])
+(require '[bitemyapp.revise.core :refer [run run-async]])
 
 ;; connect returns the connection agent
 (let [local-conn  (connect) ;; defaults to localhost
@@ -53,7 +53,7 @@ works on version `1.9` and `1.10` (in our testing so far) of RethinkDB.
 
 Inside the namespace `bitemyapp.revise.connection` there are 2 functions we need:
 
-* `connect` `([& conn-map])`
+* `connect` `([& [conn-map]])`
 * `close` `([conn])`
 
 `connect` takes an optional connection map to override any or all of the default
@@ -78,7 +78,7 @@ Inside the namespace `bitemyapp.revise.core` there are again 2 functions we need
 Our queries are compiled and sent to the connection using those two functions.
 
 `run` takes an optional timeout in milliseconds (default `10000`) and will block
-until it has a response or it timeouts. It will throw when it timeouts or the
+until it has a response or it times out. It will throw when it times out or the
 agent dies due to an exception when sending a query.
 
 `run` will return a map which includes the autoincrementing `token` that was
@@ -87,7 +87,7 @@ successful or an `:error`, `:response` and `:backtrace` in case there was
 an error with our request (in this case the driver doesn't throw an exception).
 
 Alternatively we might decide to use `run-async` to send and run queries
-asynchronously. This will return us a response which we can dereference.
+asynchronously. This will return us a promise which we can dereference.
 
 Note that `run-async` gives up the error handling of `run`. The agent _might_
 die and you will have to check for it manually.
@@ -100,12 +100,12 @@ After dereferencing the promise the return value will be the same as `run`.
 This compiles the query into protocol buffers. If you know about the official
 RethinkDB API and you want to inspect the protocol buffers Revise gives you, you
 can compile a query using that function. To send manually compiled queries to the
-database, use `send-term` in the `connection` namespace. That will be the
-equivalent of using `run-async`.
+database, use `send-term` in the `bitemyapp.revise.connection` namespace.
+That will be the equivalent of using `run-async`.
 
 ## API
 
-The api is under the namespace bitemyapp.revise.query
+The api is under the namespace bitemyapp.revise.query.
 
 ```clojure
 (require '[bitemyapp.revise.query :as r])
