@@ -4,7 +4,7 @@
                             not + - * / mod contains? keys
                             merge reduce map filter mapcat
                             distinct count empty? nth
-                            group-by type replace time])
+                            group-by type replace time or and])
   (:require [bitemyapp.revise.utils.case :refer [snake-case-keys
                                                  uppercase-keys]]))
 
@@ -57,15 +57,15 @@
              :else
              {::type t
               ::value val}))]
-    (if (and (clojure.core/map? x) (::type x))
+    (if (clojure.core/and (clojure.core/map? x) (::type x))
       x
-      (-> (cond (or (keyword? x) (string? x)) :R_STR
+      (-> (cond (clojure.core/or (keyword? x) (string? x)) :R_STR
                 (number? x) :R_NUM
                 (nil? x) :R_NULL
                 (vector? x) :R_ARRAY
-                (and (clojure.core/map? x)
+                (clojure.core/and (clojure.core/map? x)
                      (clojure.core/not (::type x))) :R_OBJECT
-                (or (false? x) (true? x)) :R_BOOL)
+                (clojure.core/or (false? x) (true? x)) :R_BOOL)
           (dt-map x)))))
 
 ;;; -------------------------------------------------------------------------
@@ -304,6 +304,11 @@ or map that over a sequence"
   "Merge objects (right-preferential)"
   [& objs]
   (query :MERGE objs))
+
+(defn literal
+  "Indicates to MERGE to replace the other object rather than merge it"
+  [json]
+  (query :LITERAL [json]))
 
 ;;; -- Sequence Ops --
 (defn between
@@ -789,8 +794,27 @@ timezone"
 (def november  (query :NOVEMBER))
 (def december  (query :DECEMBER))
 
-;;; -- Bonus Term --
-(defn literal
-  "Indicates to MERGE to replace the other object rather than merge it"
-  [json]
-  (query :LITERAL [json]))
+;;; -------------------------------------------------------------------------
+;;; Custom Helpers
+
+(defn or
+  "Like clojure's or, short circuiting _inside_ RethinkDB"
+  [& bools]
+  (case (clojure.core/count bools)
+    0 (parse-val nil)
+    1 (parse-val (first bools))
+    (let [[fst & rst] bools]
+      (branch fst
+              fst
+              (apply or rst)))))
+
+(defn and
+  "Like clojure's and, short circuiting _inside_ RethinkDB"
+  [& bools]
+  (case (clojure.core/count bools)
+    0 (parse-val nil)
+    1 (parse-val (first bools))
+    (let [[fst & rst] bools]
+      (branch fst
+              (apply and rst)
+              fst))))

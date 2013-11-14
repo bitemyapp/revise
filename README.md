@@ -1314,7 +1314,8 @@ Convert a time to its epoch time.
 
 `([test then else])`
 
-Like an if.
+Like an if. The test can be any value. Truthiness appears to be similar to
+clojure's (`false` and `nil` are falsey, everything else is truthy).
 
 ```clojure
 (-> (r/table "marvel")
@@ -1325,6 +1326,37 @@ Like an if.
                        (r/+ (r/get-field hero :name) " is a hero"))))   ; else
     (run conn))
 ```
+
+#### or
+
+`([& bools])`
+
+Like clojure's short-circuiting `or` except that: It short circuits _inside_
+RethinkDB and it is a little inneficient in that if your "booleans" are queries
+it will probably run them twice.
+
+The same truthy/falsey rules apply as with `branch`.
+
+```clojure
+(-> (r/or false false false true) (run conn))
+(-> (r/or false nil false "hello!" nil) (run conn))
+```
+
+#### and
+
+`([& bools])`
+
+Like clojure's short-circuiting `and` except that: It short circuits _inside_
+RethinkDB and it is a little inneficient in that if your "booleans" are queries
+it will probably run them twice.
+
+The same truthy/falsey rules apply as with `branch`.
+
+```clojure
+(-> (r/and true true true) (run conn))
+(-> (r/and 1 2 3 nil) (run conn))
+```
+
 
 #### any
 

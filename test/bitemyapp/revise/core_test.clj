@@ -381,6 +381,10 @@
   (r/branch true
             "tis true!"
             "tis false!"))
+(def or-test
+  (r/or false false nil 2 false))
+(def and-test
+  (r/and true true "wheee!"))
 (def any
   (r/any false false false true))
 (def all
@@ -586,6 +590,8 @@
     (testing "Control structures"
       (are [x y] (= x y)
            (rr branch)        ["tis true!"]
+           (rr or-test)       [2]
+           (rr and-test)      ["wheee!"]
            (rr any)           [true]
            (rr all)           [true]
            (rr error)         ["Wheeee"]
