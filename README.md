@@ -453,8 +453,9 @@ Select all documents on a table. This command can be chained with other commands
 do further processing on the data
 
 ```clojure
-(-> (r/db "test") (r/table "authors") (run conn))
+(-> (r/db "test") (r/table-db "authors") (run conn))
 ```
+
 #### table
 
 `([table-name])`
