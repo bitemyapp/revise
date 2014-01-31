@@ -1,4 +1,4 @@
-(defproject revise "0.0.5"
+(defproject revise "0.0.6"
   :description "RethinkDB client for Clojure"
   :url "github.com/bitemyapp/revise/"
   :license {:name "Eclipse Public License"

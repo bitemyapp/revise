@@ -1,3 +1,6 @@
+# 0.0.6
+* Fix missing clojure.walk require in query ns
+
 # 0.0.5
 * Added helper queries `or`, `and`
 
