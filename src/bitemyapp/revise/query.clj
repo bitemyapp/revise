@@ -6,7 +6,8 @@
                             distinct count empty? nth
                             group-by type replace time or and])
   (:require [bitemyapp.revise.utils.case :refer [snake-case-keys
-                                                 uppercase-keys]]))
+                                                 uppercase-keys]]
+            clojure.walk))
 
 (defn datum?
   [m]
