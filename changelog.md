@@ -1,3 +1,8 @@
+# 0.1.0
+* Revise supports Rethinkdb 1.12.4 (The Wizard of Oz)
+* Removed dependency on lein-protobuf. Moved protocol buffers to their own jar.
+* Added the following queries: group, sum, avg, min, max
+
 # 0.0.6
 * Fix missing clojure.walk require in query ns
 
@@ -12,7 +17,6 @@ and throws when it times out or the agent dies. It now takes an optional timeout
 which defaults to 10000 (ms)
 
 # 0.0.3
-
 * Fixed a bug where `(group-by .. {:avg :smthing})` would return the error:
 `"Cannot divide by 0"`
 * On the same note `(group-by .. {:sum :smthing}` no longer returns 0

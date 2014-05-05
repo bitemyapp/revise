@@ -4,7 +4,8 @@
                             not + - * / mod contains? keys
                             merge reduce map filter mapcat
                             distinct count empty? nth
-                            group-by type replace time or and])
+                            group-by type replace time or and
+                            min max])
   (:require [bitemyapp.revise.utils.case :refer [snake-case-keys
                                                  uppercase-keys]]
             clojure.walk))
@@ -136,6 +137,11 @@ such as the maps returned by lambdas passed as arguments to update."
   ([s] (query :ERROR [s])))
 
 (def implicit-var (query :IMPLICIT_VAR))
+
+(defn random
+  [from to & [float?]]
+  (let [float? (boolean float?)])
+  (query :RANDOM [from to] {:float float?}))
 
 ;;; -- Data Operators --
 (defn db
@@ -312,6 +318,26 @@ or map that over a sequence"
   (query :LITERAL [json]))
 
 ;;; -- Sequence Ops --
+(defn group
+  [sq k]
+  (query :GROUP [sq k]))
+
+(defn sum
+  [sq]
+  (query :SUM [sq]))
+
+(defn avg
+  [sq]
+  (query :AVG [sq]))
+
+(defn min
+  [sq]
+  (query :MIN [sq]))
+
+(defn max
+  [sq]
+  (query :MAX [sq]))
+
 (defn between
   "Get all elements of a sequence between two values"
   ([stream-selection lower upper]

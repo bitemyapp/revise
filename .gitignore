@@ -11,3 +11,5 @@ pom.xml.asc
 .lein-plugins
 .lein-repl-history
 .nrepl-port
+rethinkdb.proto
+src/bitemyapp/revise/testing.clj

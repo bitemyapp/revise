@@ -34,7 +34,9 @@
   [^DataOutputStream out]
   ;; fking cant figure out how to get these out of the damn protobuffer
   (let [v1 1063369270
-        v2 1915781601]
+        v2 1915781601
+        ;v3 1601562686  ;; Not implemented yet in rdb 1.12
+        ]
     (send-number out v2)))
 
 (defn send-auth-key
@@ -42,6 +44,13 @@
   (let [c (count auth-key)]
     (send-number out c)
     (.writeChars out auth-key)))
+
+(defn send-protocol-number
+  "Not implemented yet as of rdb 1.12"
+  [^DataOutputStream out]
+  (let [protobuf 656407617
+        json 2120839367]
+    (send-number out protobuf)))
 
 (defn read-init-response
   [^DataInputStream in]

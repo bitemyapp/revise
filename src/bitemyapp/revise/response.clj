@@ -69,6 +69,11 @@
   {:token (:token pb)
    :response (response (:response pb))})
 
+(defmethod initial :success-partial
+  [pb]
+  {:token (:token pb)
+   :response (response (:response pb))})
+
 (defmethod initial :client-error
   [pb]
   {:error :client-error
@@ -89,7 +94,6 @@
    :token (:token pb)
    :response (response (:response pb))
    :backtrace (:backtrace pb)})
-
 
 (defn inflate
   "Deserialize the response protobuffer"
