@@ -2,6 +2,9 @@
 * Revise supports Rethinkdb 1.12.4 (The Wizard of Oz)
 * Removed dependency on lein-protobuf. Moved protocol buffers to their own jar.
 * Added the following queries: group, sum, avg, min, max
+* The result promise is now a core.async channel
+* Added mechanism for terms CONTINUE, STOP, WAIT_NOREPLY
+* Now supports success-partial queries
 
 # 0.0.6
 * Fix missing clojure.walk require in query ns
