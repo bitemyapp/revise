@@ -9,7 +9,9 @@
                                                   parse-little-endian-32
                                                   concat-byte-arrays]]
             [bitemyapp.revise.protodefs :refer [Query Response]]
-            [bitemyapp.revise.response :refer [inflate]]))
+            [bitemyapp.revise.response :refer [inflate]]
+            [clojure.core.async :as async :refer [chan <!! >!!]]
+            [clojure.core.async.impl.protocols :as async-impl]))
 
 (defn close
   "Close the connection"
@@ -96,14 +98,22 @@
 
 (defn deliver-result [conn result]
   (let [token (:token result)
-        prom (get (:waiting conn) token)]
-    (deliver prom result)
-    (dissoc-in conn [:waiting token])))
+        channel (get (:waiting conn) token)
+        success-partial (and (= :success (:type result))
+                             (= :success-partial (:success result)))]
+    (>!! channel result)
+    (if success-partial ;; response is incomplete
+      conn
+      (do
+        (async/close! channel)
+        (dissoc-in conn [:waiting token])))))
 
+;; This might be too drastic sometimes?
 (defn fail-with-error [conn error]
-  (let [promises (:waiting conn)]
-    (doseq [prom promises]
-      (deliver prom error)))
+  (let [channels (:waiting conn)]
+    (doseq [c channels]
+      (>!! c error)
+      (async/close! c)))
   (throw error))
 
 (defn read-into-conn [conn reader-signal]
@@ -153,8 +163,8 @@
                                      msg)]
     (.write out full-msg 0 (+ 4 c))))
 
-(defn send-bump-token [conn prom ^PersistentProtocolBufferMap term]
-  (let [{:keys [in out token]} conn
+(defn send-bump-token [conn channel ^PersistentProtocolBufferMap term]
+  (let [{:keys [out token]} conn
         type :START]
     (try
       (send-protobuf out (pb/protobuf Query {:query term
@@ -163,10 +173,72 @@
       (catch Exception e
         (send-off conn fail-with-error e)))
     (-> (update-in conn [:token] inc)
-        (assoc-in [:waiting token] prom))))
+        (assoc-in [:waiting token] channel))))
+
+(defn send-continue
+  [conn token]
+  (let [{:keys [out]} conn
+        type :CONTINUE]
+    (try
+      (send-protobuf out (pb/protobuf Query {:token token
+                                             :type type}))
+      (catch Exception e
+        (send-off conn fail-with-error e)))
+    conn))
+
+(defn send-stop
+  [conn token]
+  (let [{:keys [out]} conn
+        type :CONTINUE]
+    (try
+      (send-protobuf out (pb/protobuf Query {:token token
+                                             :type type}))
+      (catch Exception e
+        (send-off conn fail-with-error e)))
+    conn))
+
+(defn send-noreply-wait
+  [conn channel]
+  (let [{:keys [out token]} conn
+        type :NOREPLY_WAIT]
+    (try
+      (send-protobuf out (pb/protobuf Query {:token token
+                                             :type type}))
+      (catch Exception e
+        (send-off conn fail-with-error e)))
+    (-> (update-in conn [:token] inc)
+        (assoc-in [:waiting token] channel))))
 
 (defn send-term
   [^PersistentProtocolBufferMap term conn]
-  (let [prom (promise)]
-    (send-off conn send-bump-token prom term)
-    prom))
+  (let [c (chan)]
+    (send-off conn send-bump-token c term)
+    c))
+
+(defn continue
+  [token conn]
+  (when-let [c (get-in @conn [:waiting token])]
+    (if (async-impl/closed? c)
+      (send-off conn fail-with-error
+                (Exception. (str "The 'waiting' channel for token '" token
+                                 "' was closed prematurely!")))
+      (do
+        (send-off conn send-continue token)
+        c))))
+
+(defn stop
+  [token conn]
+  (when-let [c (get-in @conn [:waiting token])]
+    (if (async-impl/closed? c)
+      (send-off conn fail-with-error
+                (Exception. (str "The 'waiting' channel for token '"
+                                 token "' was closed prematurely!")))
+      (do
+        (send-off conn send-stop token)
+        c))))
+
+(defn wait
+  [conn]
+  (let [c (chan)]
+    (send-off conn send-noreply-wait c)
+    c))

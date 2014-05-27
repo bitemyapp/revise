@@ -62,21 +62,28 @@
 (defmethod initial :success-atom
   [pb]
   {:token (:token pb)
-   :response (response (:response pb))})
+   :response (response (:response pb))
+   :type :success
+   :success :success-atom})
 
 (defmethod initial :success-sequence
   [pb]
   {:token (:token pb)
-   :response (response (:response pb))})
+   :response (response (:response pb))
+   :type :success
+   :success :success-sequence})
 
 (defmethod initial :success-partial
   [pb]
   {:token (:token pb)
-   :response (response (:response pb))})
+   :response (response (:response pb))
+   :type :success
+   :success :success-partial})
 
 (defmethod initial :client-error
   [pb]
   {:error :client-error
+   :type :error
    :token (:token pb)
    :response (response (:response pb))
    :backtrace (:backtrace pb)})
@@ -84,6 +91,7 @@
 (defmethod initial :runtime-error
   [pb]
   {:error :runtime-error
+   :type :error
    :token (:token pb)
    :response (response (:response pb))
    :backtrace (:backtrace pb)})
@@ -91,6 +99,7 @@
 (defmethod initial :compile-error
   [pb]
   {:error :compile-error
+   :type :error
    :token (:token pb)
    :response (response (:response pb))
    :backtrace (:backtrace pb)})
