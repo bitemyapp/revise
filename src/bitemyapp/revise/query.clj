@@ -132,16 +132,31 @@ such as the maps returned by lambdas passed as arguments to update."
   ([s] (query :JAVASCRIPT [s]))
   ([s timeout] (query :JAVASCRIPT [s] {:timeout timeout})))
 
+;; TODO - not yet available in 1.12
+#_(defn http
+  "Takes an HTTP URL and gets it. If the get succeeds and returns valid JSON, it
+is converted into a DATUM.
+Takes an optional map with any of the following keys:
+data
+method
+params
+header
+attempts
+redirects
+verify
+depaginate
+auth
+result_format"
+  ([s] (query :HTTP [s]))
+  ([s opts] (query :HTTP [s] opts)))
+
 (defn error
   ([] (query :ERROR))
   ([s] (query :ERROR [s])))
 
-(def implicit-var (query :IMPLICIT_VAR))
-
-(defn random
-  [from to & [float?]]
-  (let [float? (boolean float?)])
-  (query :RANDOM [from to] {:float float?}))
+(def implicit-var
+  "Returns a reference to the implicit value"
+  (query :IMPLICIT_VAR))
 
 ;;; -- Data Operators --
 (defn db
@@ -279,6 +294,12 @@ such as the maps returned by lambdas passed as arguments to update."
   [obj-or-sq s]
   (query :GET_FIELD [obj-or-sq s]))
 
+(defn object
+  "Creates a javascript object from k/v pairs - consider simply using a clojure
+map. Usage similar to clojure.core/hash-map"
+  [& key-vals]
+  (query :OBJECT key-vals))
+
 (defn keys
   "Return an array containing the keys of the object"
   [obj]
@@ -404,7 +425,8 @@ given filter"
   [sq n]
   (query :NTH [sq n]))
 
-(defn grouped-map-reduce
+;; Removed in version 1.12 of rethinkdb, use group, map and reduce instead
+#_(defn grouped-map-reduce
   "Takes a sequence and three functions:
 - a function to group the sequence by
 - a function to map over the groups
@@ -414,7 +436,8 @@ given filter"
   ([sq lambda1 lambda1-2 lambda2 base]
      (query :GROUPED_MAP_REDUCE [sq lambda1 lambda1-2 lambda2] {:base base})))
 
-(defn group-by
+;; Removed in version 1.12 of rethinkdb, use group instead
+#_(defn group-by
   "Groups a sequence by one or more attributes and then applies a reduction.
 The third argument is a special object literal giving the kind of operation
 to be performed and anay necessary arguments.
@@ -612,6 +635,12 @@ Optargs: :datacenter str
   [db]
   (query :TABLE_LIST [db]))
 
+(defn sync
+  "Ensures that previously issued soft-durability writes are complete and
+written to disk"
+  [table]
+  (query :SYNC [table]))
+
 ;;; -- Secondary indexes Ops --
 (defn index-create
   "Creates a new secondary index with a particular name and definition
@@ -632,6 +661,26 @@ Optarg: multi -> bool"
   "Lists all secondary indexes on a particular table"
   [table]
   (query :INDEX_LIST [table]))
+
+(defn index-status
+  "Gets information about whether or not a set of indexes are ready to be
+accessed. Returns a list of objects (clojure maps) that look like this:
+ {\"index\" string
+  \"ready\" boolean
+  \"blocks_processed\" number
+  \"blocks-total\" number}"
+  [table & idx-names]
+  (query :INDEX_STATUS (concat [table] idx-names)))
+
+(defn index-wait
+  "Blocks until a set of indexes are ready to be accessed. Returns the same
+values as index-status; a list of objects (clojure maps) that look like:
+ {\"index\" string
+  \"ready\" boolean
+  \"blocks_processed\" number
+  \"blocks-total\" number}"
+  [table & idx-names]
+  (query :INDEX_WAIT (concat [table] idx-names)))
 
 ;;; -- Control Operators --
 (defn funcall
@@ -680,6 +729,16 @@ terms that function returns"
   "(match a b) returns a match object if the string \"a\" matches the regexp #\"b\""
   [s re]
   (query :MATCH [s (str re)]))
+
+(defn upcase
+  "Change a string to uppercase"
+  [s]
+  (query :UPCASE [s]))
+
+(defn downcase
+  "Change a string to downcase"
+  [s]
+  (query :DOWNCASE [s]))
 
 (defn sample
   "Select a number of elements from sequence with uniform distribution"
@@ -820,6 +879,34 @@ timezone"
 (def october   (query :OCTOBER))
 (def november  (query :NOVEMBER))
 (def december  (query :DECEMBER))
+
+;;; -------------------------------------------------------------------------
+;;; Extra stuff
+
+(defn split
+  "Returns an array of an split string
+(split s) splits on whitespace
+(split s \" \") splits on spaces only
+(split s \" \" 5) splits on spaces with at most 5 results
+(split s nil 5) splits on whitespace with at most 5 results"
+  ([s] (query :SPLIT [s]))
+  ([s splitter] (query :SPLIT [s splitter]))
+  ([s splitter result-count] (query :SPLIT [s splitter result-count])))
+
+(defn ungroup
+  [grouped-data]
+  (query :UNGROUP [grouped-data]))
+
+;; TODO - not yet available in 1.12
+#_(defn random
+  "Takes a range of numbers and returns a random number within the range"
+  [from to & [float?]]
+  (let [float? (boolean float?)])
+  (query :RANDOM [from to] {:float float?}))
+
+(defn changes
+  [table]
+  (query :CHANGES [table]))
 
 ;;; -------------------------------------------------------------------------
 ;;; Custom Helpers

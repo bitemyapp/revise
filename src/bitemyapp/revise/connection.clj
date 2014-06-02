@@ -47,6 +47,7 @@
     (send-number out c)
     (.writeChars out auth-key)))
 
+;; TODO - not yet available in 1.12
 (defn send-protocol-number
   "Not implemented yet as of rdb 1.12"
   [^DataOutputStream out]
@@ -154,7 +155,7 @@
     (future (read-into-conn conn reader-signal))
     conn))
 
-(defn send-protobuf
+(defn protobuf-send
   "Send a protobuf to the socket's outputstream"
   [^DataOutputStream out ^PersistentProtocolBufferMap data]
   (let [msg (pb/protobuf-dump data)
@@ -163,59 +164,60 @@
                                      msg)]
     (.write out full-msg 0 (+ 4 c))))
 
-(defn send-bump-token [conn channel ^PersistentProtocolBufferMap term]
+(defn protobuf-send-start
+  [conn channel ^PersistentProtocolBufferMap term]
   (let [{:keys [out token]} conn
         type :START]
     (try
-      (send-protobuf out (pb/protobuf Query {:query term
+      (protobuf-send out (pb/protobuf Query {:query term
                                              :token token
                                              :type type}))
       (catch Exception e
-        (send-off conn fail-with-error e)))
+        (send-off *agent* fail-with-error e)))
     (-> (update-in conn [:token] inc)
         (assoc-in [:waiting token] channel))))
 
-(defn send-continue
+(defn protobuf-send-continue
   [conn token]
   (let [{:keys [out]} conn
         type :CONTINUE]
     (try
-      (send-protobuf out (pb/protobuf Query {:token token
+      (protobuf-send out (pb/protobuf Query {:token token
                                              :type type}))
       (catch Exception e
-        (send-off conn fail-with-error e)))
+        (send-off *agent* fail-with-error e)))
     conn))
 
-(defn send-stop
+(defn protobuf-send-stop
   [conn token]
   (let [{:keys [out]} conn
         type :CONTINUE]
     (try
-      (send-protobuf out (pb/protobuf Query {:token token
+      (protobuf-send out (pb/protobuf Query {:token token
                                              :type type}))
       (catch Exception e
-        (send-off conn fail-with-error e)))
+        (send-off *agent* fail-with-error e)))
     conn))
 
-(defn send-noreply-wait
+(defn protobuf-send-noreply-wait
   [conn channel]
   (let [{:keys [out token]} conn
         type :NOREPLY_WAIT]
     (try
-      (send-protobuf out (pb/protobuf Query {:token token
+      (protobuf-send out (pb/protobuf Query {:token token
                                              :type type}))
       (catch Exception e
-        (send-off conn fail-with-error e)))
+        (send-off *agent* fail-with-error e)))
     (-> (update-in conn [:token] inc)
         (assoc-in [:waiting token] channel))))
 
-(defn send-term
+(defn send-start
   [^PersistentProtocolBufferMap term conn]
   (let [c (chan)]
-    (send-off conn send-bump-token c term)
+    (send-off conn protobuf-send-start c term)
     c))
 
-(defn continue
+(defn send-continue
   [token conn]
   (when-let [c (get-in @conn [:waiting token])]
     (if (async-impl/closed? c)
@@ -226,7 +228,7 @@
         (send-off conn send-continue token)
         c))))
 
-(defn stop
+(defn send-stop
   [token conn]
   (when-let [c (get-in @conn [:waiting token])]
     (if (async-impl/closed? c)
@@ -237,7 +239,7 @@
         (send-off conn send-stop token)
         c))))
 
-(defn wait
+(defn send-wait
   [conn]
   (let [c (chan)]
     (send-off conn send-noreply-wait c)
