@@ -91,8 +91,13 @@
                                (r/get-field user :country)]))))
 (def list-index
   (-> (r/db "test") (r/table-db "revise_users") (r/index-list)))
+(def status-index
+  (-> (r/db "test") (r/table-db "revise_users") (r/index-status :email :demo)))
+(def wait-index
+  (-> (r/db "test") (r/table-db "revise_users") (r/index-wait :email)))
 (def drop-index
   (-> (r/db "test") (r/table-db "revise_users") (r/index-drop :email)))
+
 ;;; -----------------------------------------------------------------------
 ;;; Writing data
 (def users (-> (r/db "test") (r/table-db "revise_users")))
@@ -138,6 +143,8 @@
 (def delete
   (-> users (r/get "dd")
       (r/delete)))
+(def sync-table
+  (-> users (r/sync)))
 ;;; -----------------------------------------------------------------------
 ;;; Selecting data
 (def reference-db
@@ -310,6 +317,13 @@
   (-> (r/filter ["Hello" "Also" "Goodbye"]
                 (r/lambda [s]
                           (r/match s #"^A")))))
+(def split-string1
+  (r/split "hello
+world how   are   you   ?"))
+(def split-string2
+  (r/split "hello world how are you ?" " "))
+(def split-string3
+  (r/split "h e l l o w o r l d" nil 5))
 ;;; -----------------------------------------------------------------------
 ;;; Math and Logic
 (def math
@@ -440,6 +454,8 @@
            (rr create-index)                 [{:created 1}]
            (rr create-multi-index)           [{:created 1}]
            (set (first (rr list-index)))     #{"demo" "email"}
+           (:type (run status-index conn))   :success
+           (:type (run wait-index conn 20000)) :success
            (rr drop-index)                   [{:dropped 1}]))
 
     (testing "Writing data"
@@ -449,7 +465,8 @@
            (:replaced (first (rr update-append)))    7
            (:replaced (first (rr update-lambda)))    7
            (:replaced (first (rr replace-test)))     1
-           (:deleted (first (rr delete)))            1))
+           (:deleted (first (rr delete)))            1
+           (rr sync-table)                           [{:synced 1}]))
 
     (testing "Selecting data"
       (are [x y] (= x y)
@@ -543,7 +560,11 @@
                                            "admin" "posts" "country" "email" "age"}))
 
     (testing "String Manipulation"
-      (is (= (rr match-string) [["Also"]])))
+      (are [x y] (= x y)
+           (rr match-string) [["Also"]]
+           (rr split-string1) [["hello" "world" "how" "are" "you" "?"]]
+           (rr split-string2) [["hello" "world" "how" "are" "you" "?"]]
+           (rr split-string3) [["h" "e" "l" "l" "o" "w o r l d"]]))
 
     (testing "Math and Logic"
       (are [x y] (= x y)
