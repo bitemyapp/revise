@@ -111,7 +111,7 @@
 
 ;; This might be too drastic sometimes?
 (defn fail-with-error [conn error]
-  (let [channels (:waiting conn)]
+  (let [channels (vals (:waiting conn))]
     (doseq [c channels]
       (>!! c error)
       (async/close! c)))
