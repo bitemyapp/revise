@@ -493,7 +493,8 @@
            (first (rr indexes-of))              [0 2 4]
            (rr empty-array)                     [true]
            (count (rr union))                   9
-           (count (rr sample))                  2))
+           ;; TODO - mode sneaky nesting
+           (count (first (rr sample)))          2))
 
     (testing "Aggregation"
       (are [x y] (= x y)
