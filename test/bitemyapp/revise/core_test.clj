@@ -224,7 +224,8 @@
       (r/reduce (r/lambda [acc cnt] (r/+ acc cnt)) 0)))
 (def distinct-array
   (r/distinct [1 1 2 2 3 3 4 4]))
-(def grouped-map-reduce
+;; Gone in 1.12
+#_(def grouped-map-reduce
   (-> users
       (r/grouped-map-reduce
        (r/lambda [user] (r/get-field user :age))
@@ -232,13 +233,14 @@
        (r/lambda [acc cnt]
                  (r/+ acc cnt))
        0)))
-(def grouped-count
+;; Gone in 1.12
+#_(def grouped-count
   (-> users
       (r/group-by [:age] :count)))
-(def grouped-sum
+#_(def grouped-sum
   (-> users
       (r/group-by [:country] {:sum :permission})))
-(def grouped-average
+#_(def grouped-average
   (-> users
       (r/group-by [:country] {:avg :age})))
 (def contains
@@ -497,18 +499,18 @@
       (are [x y] (= x y)
            (first (rr count-posts))             10
            (set (first (rr distinct-array)))    #{1 2 3 4}
-           (first (rr grouped-map-reduce))      [{:group 21, :reduction 4}
+           #_(first (rr grouped-map-reduce))      #_[{:group 21, :reduction 4}
                                                  {:group 22, :reduction 6}
                                                  {:group 23, :reduction 0}]
-           (first (rr grouped-count))           [{:group {:age 21}, :reduction 2}
+           #_(first (rr grouped-count))           #_[{:group {:age 21}, :reduction 2}
                                                  {:group {:age 22}, :reduction 3}
                                                  {:group {:age 23}, :reduction 1}]
-           (set (first (rr grouped-sum)))       #{{:group {:country "in"}, :reduction 3}
+           #_(set (first (rr grouped-sum)))       #_#{{:group {:country "in"}, :reduction 3}
                                                   {:group {:country "mx"}, :reduction 3}
                                                   {:group {:country "fr"}, :reduction 2}
                                                   {:group {:country "us"}, :reduction 2}
                                                   {:group {:country "ca"}, :reduction 2}}
-           (set (first (rr grouped-average)))   #{{:group {:country "ca"}, :reduction 22}
+           #_(set (first (rr grouped-average)))   #_#{{:group {:country "ca"}, :reduction 22}
                                                   {:group {:country "in"}, :reduction 22}
                                                   {:group {:country "mx"}, :reduction 21}
                                                   {:group {:country "fr"}, :reduction 23}
