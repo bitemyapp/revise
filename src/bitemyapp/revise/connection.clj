@@ -225,7 +225,7 @@
                 (Exception. (str "The 'waiting' channel for token '" token
                                  "' was closed prematurely!")))
       (do
-        (send-off conn send-continue token)
+        (send-off conn protobuf-send-continue token)
         c))))
 
 (defn send-stop
@@ -236,11 +236,11 @@
                 (Exception. (str "The 'waiting' channel for token '"
                                  token "' was closed prematurely!")))
       (do
-        (send-off conn send-stop token)
+        (send-off conn protobuf-send-stop token)
         c))))
 
 (defn send-wait
   [conn]
   (let [c (chan)]
-    (send-off conn send-noreply-wait c)
+    (send-off conn protobuf-send-noreply-wait c)
     c))
