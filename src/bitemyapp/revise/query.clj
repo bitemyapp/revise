@@ -5,7 +5,7 @@
                             merge reduce map filter mapcat
                             distinct count empty? nth
                             group-by type replace time or and
-                            min max])
+                            min max sync])
   (:require [bitemyapp.revise.utils.case :refer [snake-case-keys
                                                  uppercase-keys]]
             clojure.walk))
