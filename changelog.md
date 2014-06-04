@@ -1,5 +1,6 @@
 # 0.1.0 - MANY BREAKING CHANGES
 * Revise supports Rethinkdb 1.12 (The Wizard of Oz)
+* Renamed queries table-xxx-db to table-xxx and table-xxx to table-xxx-default
 * Removed dependency on lein-protobuf. Moved protocol buffers to their own jar.
 * Added the following queries: group, sum, avg, min, max, object, upcase, downcase,
 split-string, index-status, index-wait, sync
