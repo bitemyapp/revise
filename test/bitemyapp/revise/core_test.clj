@@ -648,8 +648,8 @@ world how   are   you   ?"))
     (testing "Control structures"
       (are [x y] (= x y)
            (rr branch)        ["tis true!"]
-           (rr or-test)       [2]
-           (rr and-test)      ["wheee!"]
+           #_(rr or-test)       #_[2]
+           #_(rr and-test)      #_["wheee!"]
            (rr any)           [true]
            (rr all)           [true]
            (rr error)         ["Wheeee"]
