@@ -11,8 +11,8 @@
             [bitemyapp.revise.query :as r]
             [bitemyapp.revise.response :refer [inflate]]))
 
-(def drop-authors (-> (r/db "test") (r/table-drop-db "authors")))
-(def create-authors (-> (r/db "test") (r/table-create-db "authors")))
+(def drop-authors (-> (r/db "test") (r/table-drop "authors")))
+(def create-authors (-> (r/db "test") (r/table-create "authors")))
 
 (def authors [{:name "William Adama" :tv-show "Battlestar Galactica"
                :posts [{:title "Decommissioning speech",
@@ -34,10 +34,10 @@
                :posts [{:title "Civil rights",
                         :content "There are some words I've known since..."}]}])
 
-(def insert-authors (-> (r/db "test") (r/table-db "authors")
+(def insert-authors (-> (r/db "test") (r/table "authors")
                         (r/insert authors)))
 
-(def filter-william (-> (r/table "authors")
+(def filter-william (-> (r/table-default "authors")
                         (r/filter
                          (r/lambda [row] (r/= (r/get-field row :name) "William Adama")))))
 
@@ -52,7 +52,7 @@
   (set (pare-down (:response result))))
 
 (defn dump-and-william []
-  [(future (prep-result (-> (r/table "authors") (run)))) (future (prep-result (run filter-william)))])
+  [(future (prep-result (-> (r/table-default "authors") (run)))) (future (prep-result (run filter-william)))])
 
 (defn test-match-results []
   (let [[dump william] (dump-and-william)]
@@ -73,34 +73,34 @@
 ;;; -----------------------------------------------------------------------
 ;;; Manipulating tables
 (def create-table
-  (-> (r/db "test") (r/table-create-db "revise_test1")))
+  (-> (r/db "test") (r/table-create "revise_test1")))
 (def create-table-optargs
-  (-> (r/db "test") (r/table-create-db "revise_users"
-                                       :primary-key :name)))
+  (-> (r/db "test") (r/table-create "revise_users"
+                                    :primary-key :name)))
 (def drop-table
-  (-> (r/db "test") (r/table-drop-db "revise_test1")))
+  (-> (r/db "test") (r/table-drop "revise_test1")))
 
 (def create-index
-  (-> (r/db "test") (r/table-db "revise_users")
+  (-> (r/db "test") (r/table "revise_users")
       (r/index-create :email (r/lambda [user] (r/get-field user :email)))))
 (def create-multi-index
-  (-> (r/db "test") (r/table-db "revise_users")
+  (-> (r/db "test") (r/table "revise_users")
       (r/index-create :demo
                       (r/lambda [user]
-                              [(r/get-field user :age)
-                               (r/get-field user :country)]))))
+                                [(r/get-field user :age)
+                                 (r/get-field user :country)]))))
 (def list-index
-  (-> (r/db "test") (r/table-db "revise_users") (r/index-list)))
+  (-> (r/db "test") (r/table "revise_users") (r/index-list)))
 (def status-index
-  (-> (r/db "test") (r/table-db "revise_users") (r/index-status :email :demo)))
+  (-> (r/db "test") (r/table "revise_users") (r/index-status :email :demo)))
 (def wait-index
-  (-> (r/db "test") (r/table-db "revise_users") (r/index-wait :email)))
+  (-> (r/db "test") (r/table "revise_users") (r/index-wait :email)))
 (def drop-index
-  (-> (r/db "test") (r/table-db "revise_users") (r/index-drop :email)))
+  (-> (r/db "test") (r/table "revise_users") (r/index-drop :email)))
 
 ;;; -----------------------------------------------------------------------
 ;;; Writing data
-(def users (-> (r/db "test") (r/table-db "revise_users")))
+(def users (-> (r/db "test") (r/table "revise_users")))
 (def data-multi
   [{:name "aa" :age 20 :country "us" :email "aa@ex.com"
     :gender "m" :posts ["a" "aa" "aaa"]
@@ -162,13 +162,13 @@
 ;;; -----------------------------------------------------------------------
 ;;; Joins
 (def create-permissions
-  (-> (r/db "test") (r/table-create-db "revise_permissions" :primary-key :number)))
+  (-> (r/db "test") (r/table-create "revise_permissions" :primary-key :number)))
 (def permissions-data
   [{:number 1 :admin false :permission "read"}
    {:number 2 :admin false :permission "write"}
    {:number 3 :admin false :permission "execute"}])
 (def permissions
-  (-> (r/db "test") (r/table-db "revise_permissions")))
+  (-> (r/db "test") (r/table "revise_permissions")))
 (def add-permissions
   (-> permissions (r/insert permissions-data)))
 (def inner-join
@@ -232,23 +232,23 @@
   (r/distinct [1 1 2 2 3 3 4 4]))
 ;; Gone in 1.12
 #_(def grouped-map-reduce
-  (-> users
-      (r/grouped-map-reduce
-       (r/lambda [user] (r/get-field user :age))
-       (r/lambda [user] (r/count (r/get-field user :posts)))
-       (r/lambda [acc cnt]
-                 (r/+ acc cnt))
-       0)))
+    (-> users
+        (r/grouped-map-reduce
+         (r/lambda [user] (r/get-field user :age))
+         (r/lambda [user] (r/count (r/get-field user :posts)))
+         (r/lambda [acc cnt]
+                   (r/+ acc cnt))
+         0)))
 ;; Gone in 1.12
 #_(def grouped-count
-  (-> users
-      (r/group-by [:age] :count)))
+    (-> users
+        (r/group-by [:age] :count)))
 #_(def grouped-sum
-  (-> users
-      (r/group-by [:country] {:sum :permission})))
+    (-> users
+        (r/group-by [:country] {:sum :permission})))
 #_(def grouped-average
-  (-> users
-      (r/group-by [:country] {:avg :age})))
+    (-> users
+        (r/group-by [:country] {:avg :age})))
 (def grouped
   (-> users
       (r/group :country)))
@@ -538,31 +538,31 @@ world how   are   you   ?"))
            (first (rr count-posts))             10
            (set (first (rr distinct-array)))    #{1 2 3 4}
            #_(first (rr grouped-map-reduce))      #_[{:group 21, :reduction 4}
-                                                 {:group 22, :reduction 6}
-                                                 {:group 23, :reduction 0}]
+                                                     {:group 22, :reduction 6}
+                                                     {:group 23, :reduction 0}]
            #_(first (rr grouped-count))           #_[{:group {:age 21}, :reduction 2}
-                                                 {:group {:age 22}, :reduction 3}
-                                                 {:group {:age 23}, :reduction 1}]
+                                                     {:group {:age 22}, :reduction 3}
+                                                     {:group {:age 23}, :reduction 1}]
            #_(set (first (rr grouped-sum)))       #_#{{:group {:country "in"}, :reduction 3}
-                                                  {:group {:country "mx"}, :reduction 3}
-                                                  {:group {:country "fr"}, :reduction 2}
-                                                  {:group {:country "us"}, :reduction 2}
-                                                  {:group {:country "ca"}, :reduction 2}}
+                                                      {:group {:country "mx"}, :reduction 3}
+                                                      {:group {:country "fr"}, :reduction 2}
+                                                      {:group {:country "us"}, :reduction 2}
+                                                      {:group {:country "ca"}, :reduction 2}}
            #_(set (first (rr grouped-average)))   #_#{{:group {:country "ca"}, :reduction 22}
-                                                  {:group {:country "in"}, :reduction 22}
-                                                  {:group {:country "mx"}, :reduction 21}
-                                                  {:group {:country "fr"}, :reduction 23}
-                                                  {:group {:country "us"}, :reduction 21.5}}
+                                                      {:group {:country "in"}, :reduction 22}
+                                                      {:group {:country "mx"}, :reduction 21}
+                                                      {:group {:country "fr"}, :reduction 23}
+                                                      {:group {:country "us"}, :reduction 21.5}}
            (let [grp (first (rr grouped))]
              [(:$reql_type$ grp)
               (set (map first
                         (:data grp)))])           ["GROUPED_DATA"
                                                    #{"ca" "fr" "in" "mx" "us"}]
-           (rr summed)                            [131]
-           (rr averaged)                          [6]
-           (:age (first (rr minimum)))            21
-           (:age (first (rr maximum)))            23
-           (first (rr contains))                  true))
+                        (rr summed)                            [131]
+                        (rr averaged)                          [6]
+                        (:age (first (rr minimum)))            21
+                        (:age (first (rr maximum)))            23
+                        (first (rr contains))                  true))
 
     (testing "Document Manipulation"
       (are [x y] (= x y)
@@ -671,8 +671,8 @@ world how   are   you   ?"))
     (testing "Cleanup"
       (are [x y] (= x y)
            (first (rr (-> (r/db "test")
-                          (r/table-drop-db "revise_users")))) {:dropped 1}
-           (first (rr (-> (r/db "test")
-                          (r/table-drop-db "revise_permissions")))) {:dropped 1}))
+                          (r/table-drop "revise_users")))) {:dropped 1}
+                          (first (rr (-> (r/db "test")
+                                         (r/table-drop "revise_permissions")))) {:dropped 1}))
 
     (close conn)))

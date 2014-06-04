@@ -163,13 +163,13 @@ result_format"
   [db-name]
   (query :DB [db-name]))
 
-(defn table
+(defn table-default
   ([table-name]
      (query :TABLE [table-name]))
   ([table-name use-outdated?]
      (query :TABLE [table-name] {:use_outdated use-outdated?})))
 
-(defn table-db
+(defn table
   ([db table-name]
      (query :TABLE [db table-name]))
   ([db table-name use-outdated?]
@@ -587,7 +587,7 @@ Optargs: :upsert -> bool - If true -> overwrite the data if it already exists
   []
   (query :DB_LIST))
 
-(defn table-create
+(defn table-create-default
   "Creates a table with a particular name in the default database
 
 Optargs: :datacenter str
@@ -600,7 +600,7 @@ Optargs: :datacenter str
       (query :TABLE_CREATE [tname])
       (query :TABLE_CREATE [tname] (snake-case-keys optargs)))))
 
-(defn table-create-db
+(defn table-create
   "Creates a table with a particular name in a particular database
 
 Optargs: :datacenter str
@@ -614,24 +614,24 @@ Optargs: :datacenter str
       (query :TABLE_CREATE [db tname]
              (snake-case-keys optargs)))))
 
-(defn table-drop
+(defn table-drop-default
   "Drops a table with a particular name from the default database"
   [tname]
   (let [tname (name tname)]
     (query :TABLE_DROP [tname])))
 
-(defn table-drop-db
+(defn table-drop
   "Drops a table with a particular name from a particular database"
   [db tname]
   (let [tname (name tname)]
     (query :TABLE_DROP [db tname])))
 
-(defn table-list
+(defn table-list-db
   "Lists all the tables in the default database"
   []
   (query :TABLE_LIST))
 
-(defn table-list-db
+(defn table-list
   "Lists all the tables in a particular database"
   [db]
   (query :TABLE_LIST [db]))
