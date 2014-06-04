@@ -109,13 +109,12 @@
         (async/close! channel)
         (dissoc-in conn [:waiting token])))))
 
-;; This might be too drastic sometimes?
 (defn fail-with-error [conn error]
   (let [channels (vals (:waiting conn))]
     (doseq [c channels]
       (>!! c error)
-      (async/close! c)))
-  (throw error))
+      (async/close! c))
+    conn))
 
 (defn read-into-conn [conn reader-signal]
   (while (not (or (agent-error conn)
