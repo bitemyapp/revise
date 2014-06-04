@@ -904,7 +904,8 @@ timezone"
   (let [float? (boolean float?)])
   (query :RANDOM [from to] {:float float?}))
 
-(defn changes
+;; TODO - not yet available in 1.12
+#_(defn changes
   [table]
   (query :CHANGES [table]))
 
