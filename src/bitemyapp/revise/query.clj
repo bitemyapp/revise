@@ -4,7 +4,7 @@
                             not + - * / mod contains? keys
                             merge reduce map filter mapcat
                             distinct count empty? nth
-                            group-by type replace time or and
+                            group-by type replace time
                             min max sync])
   (:require [bitemyapp.revise.utils.case :refer [snake-case-keys
                                                  uppercase-keys]]
@@ -912,25 +912,3 @@ timezone"
 
 ;;; -------------------------------------------------------------------------
 ;;; Custom Helpers
-
-(defn or
-  "Like clojure's or, short circuiting _inside_ RethinkDB"
-  [& bools]
-  (case (clojure.core/count bools)
-    0 (parse-val nil)
-    1 (parse-val (first bools))
-    (let [[fst & rst] bools]
-      (branch fst
-              fst
-              (apply or rst)))))
-
-(defn and
-  "Like clojure's and, short circuiting _inside_ RethinkDB"
-  [& bools]
-  (case (clojure.core/count bools)
-    0 (parse-val nil)
-    1 (parse-val (first bools))
-    (let [[fst & rst] bools]
-      (branch fst
-              (apply and rst)
-              fst))))
