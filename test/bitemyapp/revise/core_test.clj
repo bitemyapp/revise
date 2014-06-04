@@ -127,7 +127,6 @@
   (-> users (r/insert data-multi)))
 (def insert-single
   (-> users (r/insert data-single)))
-
 (def update-append
   (-> users (r/update {:admin false})))
 (def update-lambda
@@ -250,6 +249,21 @@
 #_(def grouped-average
   (-> users
       (r/group-by [:country] {:avg :age})))
+(def grouped
+  (-> users
+      (r/group :country)))
+(def summed
+  (-> users
+      (r/sum :age)))
+(def averaged
+  (-> [2 3 4 5 6 7 8 9 10]
+      (r/avg)))
+(def minimum
+  (-> users
+      (r/min :age)))
+(def maximum
+  (-> users
+      (r/max :age)))
 (def contains
   (-> users
       (r/get "aa")
@@ -311,6 +325,8 @@
   (-> users
       (r/get "aa")
       (r/keys)))
+(def object
+  (r/object :a 1 :b 2 :c "foo" :d ["a" 1 :b]))
 ;;; -----------------------------------------------------------------------
 ;;; String Manipulation
 (def match-string
@@ -324,6 +340,10 @@ world how   are   you   ?"))
   (r/split "hello world how are you ?" " "))
 (def split-string3
   (r/split "h e l l o w o r l d" nil 5))
+(def upcase
+  (r/upcase "hello world"))
+(def downcase
+  (r/downcase "HELLO WORLD"))
 ;;; -----------------------------------------------------------------------
 ;;; Math and Logic
 (def math
@@ -533,7 +553,16 @@ world how   are   you   ?"))
                                                   {:group {:country "mx"}, :reduction 21}
                                                   {:group {:country "fr"}, :reduction 23}
                                                   {:group {:country "us"}, :reduction 21.5}}
-           (first (rr contains))                true))
+           (let [grp (first (rr grouped))]
+             [(:$reql_type$ grp)
+              (set (map first
+                        (:data grp)))])           ["GROUPED_DATA"
+                                                   #{"ca" "fr" "in" "mx" "us"}]
+           (rr summed)                            [131]
+           (rr averaged)                          [6]
+           (:age (first (rr minimum)))            21
+           (:age (first (rr maximum)))            23
+           (first (rr contains))                  true))
 
     (testing "Document Manipulation"
       (are [x y] (= x y)
@@ -557,14 +586,17 @@ world how   are   you   ?"))
            (rr delete-at)                [[1 4 5]]
            (rr change-at)                [[1 2 3 4 5]]
            (set (first (rr keys-test)))  #{"gender" "name" "permission"
-                                           "admin" "posts" "country" "email" "age"}))
+                                           "admin" "posts" "country" "email" "age"}
+           (rr object)                   [{:a 1 :b 2 :c "foo" :d ["a" 1 "b"]}]))
 
     (testing "String Manipulation"
       (are [x y] (= x y)
-           (rr match-string) [["Also"]]
+           (rr match-string)  [["Also"]]
            (rr split-string1) [["hello" "world" "how" "are" "you" "?"]]
            (rr split-string2) [["hello" "world" "how" "are" "you" "?"]]
-           (rr split-string3) [["h" "e" "l" "l" "o" "w o r l d"]]))
+           (rr split-string3) [["h" "e" "l" "l" "o" "w o r l d"]]
+           (rr upcase)        ["HELLO WORLD"]
+           (rr downcase)      ["hello world"]))
 
     (testing "Math and Logic"
       (are [x y] (= x y)

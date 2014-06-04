@@ -339,25 +339,26 @@ or map that over a sequence"
   (query :LITERAL [json]))
 
 ;;; -- Sequence Ops --
+;; TODO - https://github.com/rethinkdb/rethinkdb/issues/2504
 (defn group
-  [sq k]
-  (query :GROUP [sq k]))
+  [sq & ks-or-lambda1s]
+  (query :GROUP (concat [sq] ks-or-lambda1s)))
 
 (defn sum
-  [sq]
-  (query :SUM [sq]))
+  ([sq & ks-or-lambda1s]
+     (query :SUM (concat [sq] ks-or-lambda1s))))
 
 (defn avg
-  [sq]
-  (query :AVG [sq]))
+  ([sq & ks-or-lambda1s]
+     (query :AVG (concat [sq] ks-or-lambda1s))))
 
 (defn min
-  [sq]
-  (query :MIN [sq]))
+  ([sq & ks-or-lambda1s]
+     (query :MIN (concat [sq] ks-or-lambda1s))))
 
 (defn max
-  [sq]
-  (query :MAX [sq]))
+  ([sq & ks-or-lambda1s]
+     (query :MAX (concat [sq] ks-or-lambda1s))))
 
 (defn between
   "Get all elements of a sequence between two values"
