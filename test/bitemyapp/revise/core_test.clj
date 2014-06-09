@@ -249,9 +249,21 @@
 #_(def grouped-average
     (-> users
         (r/group-by [:country] {:avg :age})))
+(def grouped-data
+  [{:id 2,  :player "Bob", :points 15, :type "ranked"},
+   {:id 5,  :player "Alice", :points 7, :type "free"},
+   {:id 11, :player "Bob", :points 10, :type "free"},
+   {:id 12, :player "Alice", :points 2, :type "free"}])
+(def grouped-key
+  (-> grouped-data
+      (r/group [:player])))
+(def grouped-lambda
+  (-> grouped-data
+      (r/group [(r/lambda [game] (r/pluck game :player :type))])
+      (r/max :points)))
 (def grouped
   (-> users
-      (r/group :country)))
+      (r/group [:country])))
 (def summed
   (-> users
       (r/sum :age)))
@@ -553,16 +565,26 @@ world how   are   you   ?"))
                                                       {:group {:country "mx"}, :reduction 21}
                                                       {:group {:country "fr"}, :reduction 23}
                                                       {:group {:country "us"}, :reduction 21.5}}
+           (->> (rr grouped-key)
+                (first) (:data)
+                (map first)
+                (set))                            #{"Alice" "Bob"}
+           (->> (rr grouped-lambda)
+                (first) (:data)
+                (map first)
+                (set))                            #{{:player "Alice", :type "free"}
+                                                    {:player "Bob", :type "free"}
+                                                    {:player "Bob", :type "ranked"}}
            (let [grp (first (rr grouped))]
              [(:$reql_type$ grp)
               (set (map first
                         (:data grp)))])           ["GROUPED_DATA"
                                                    #{"ca" "fr" "in" "mx" "us"}]
-                        (rr summed)                            [131]
-                        (rr averaged)                          [6]
-                        (:age (first (rr minimum)))            21
-                        (:age (first (rr maximum)))            23
-                        (first (rr contains))                  true))
+           (rr summed)                            [131]
+           (rr averaged)                          [6]
+           (:age (first (rr minimum)))            21
+           (:age (first (rr maximum)))            23
+           (first (rr contains))                  true))
 
     (testing "Document Manipulation"
       (are [x y] (= x y)
@@ -672,7 +694,7 @@ world how   are   you   ?"))
       (are [x y] (= x y)
            (first (rr (-> (r/db "test")
                           (r/table-drop "revise_users")))) {:dropped 1}
-                          (first (rr (-> (r/db "test")
-                                         (r/table-drop "revise_permissions")))) {:dropped 1}))
+           (first (rr (-> (r/db "test")
+                          (r/table-drop "revise_permissions")))) {:dropped 1}))
 
     (close conn)))

@@ -339,26 +339,66 @@ or map that over a sequence"
   (query :LITERAL [json]))
 
 ;;; -- Sequence Ops --
-;; TODO - https://github.com/rethinkdb/rethinkdb/issues/2504
 (defn group
-  [sq & ks-or-lambda1s]
-  (query :GROUP (concat [sq] ks-or-lambda1s)))
+  "Takes a stream and partitions it into multiple groups based on the fields or
+functions provided. Commands chained after group will be called on each of these
+grouped sub-streams, producing grouped data.
+
+Examples:
+;; group by a key
+(group tbl [:player])
+;; group by a lambda
+(group tbl [(lambda [game] (pluck game :player :type))])
+;; group by an index
+(group tbl [] :index :type)"
+  [sq ks-or-lambda1s & {:keys [index]}]
+  (if index
+    (query :GROUP (concat [sq] ks-or-lambda1s) {:index index})
+    (query :GROUP (concat [sq] ks-or-lambda1s))))
 
 (defn sum
-  ([sq & ks-or-lambda1s]
-     (query :SUM (concat [sq] ks-or-lambda1s))))
+  "Sums all the elements of a sequence. If called with a field name, sums all
+the values of that field in the sequence, skipping elements of the sequence that
+lack that field. If called with a function, calls that function on every element
+of the sequence and sums the results, skipping elements of the sequence where
+that function returns nil or a non-existence error."
+  ([sq & [k-or-lambda1]]
+     (if k-or-lambda1
+       (query :SUM [sq k-or-lambda1])
+       (query :SUM [sq]))))
 
 (defn avg
-  ([sq & ks-or-lambda1s]
-     (query :AVG (concat [sq] ks-or-lambda1s))))
+  "Averages all the elements of a sequence. If called with a field name,
+averages all the values of that field in the sequence, skipping elements of the
+sequence that lack that field. If called with a function, calls that function on
+every element of the sequence and averages the results, skipping elements of the
+sequence where that function returns nil or a non-existence error."
+  ([sq & [k-or-lambda1]]
+     (if k-or-lambda1
+       (query :AVG [sq k-or-lambda1])
+       (query :AVG [sq]))))
 
 (defn min
-  ([sq & ks-or-lambda1s]
-     (query :MIN (concat [sq] ks-or-lambda1s))))
+  "Finds the minimum of a sequence. If called with a field name, finds the
+element of that sequence with the smallest value in that field. If called with a
+function, calls that function on every element of the sequence and returns the
+element which produced the smallest value, ignoring any elements where the
+function returns nil or produces a non-existence error."
+  ([sq & [k-or-lambda1]]
+     (if k-or-lambda1
+       (query :MIN [sq k-or-lambda1])
+       (query :MIN [sq]))))
 
 (defn max
-  ([sq & ks-or-lambda1s]
-     (query :MAX (concat [sq] ks-or-lambda1s))))
+  "Finds the maximum of a sequence. If called with a field name, finds the
+element of that sequence with the largest value in that field. If called with a
+function, calls that function on every element of the sequence and returns the
+element which produced the largest value, ignoring any elements where the
+function returns nil or produces a non-existence error."
+  ([sq & [k-or-lambda1]]
+     (if k-or-lambda1
+       (query :MAX [sq k-or-lambda1])
+       (query :MAX [sq]))))
 
 (defn between
   "Get all elements of a sequence between two values"
