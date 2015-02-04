@@ -12,6 +12,4 @@
   :dependencies [[org.clojure/clojure "1.6.0"]
                  [org.clojure/core.async "0.1.303.0-886421-alpha"]
                  [robert/bruce "0.7.1"]
-                 [revise/protobuf "0.8.3"]
-                 [revise/rethinkdb "1.0.2"]
                  [cheshire "5.3.1"]])
