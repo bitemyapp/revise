@@ -15,7 +15,7 @@
   (boolean
    (#{:R_STR :R_NUM :R_NULL :R_BOOL :R_ARRAY :R_OBJECT} (::type m))))
 
-(declare parse-val make-obj query)
+(declare parse-val make-obj)
 
 (defn parse-map
   "Decide if a map (not an optargs map) should be made with make-obj
@@ -38,7 +38,7 @@
   [sq]
   (let [xs (clojure.core/mapv parse-val sq)]
     (if (some (complement datum?) xs)
-      ;; Manual invocation of query
+      ;; Manual invocation of term
       {::type :MAKE_ARRAY
        ::args {::type :args
                ::value xs}}
@@ -73,7 +73,7 @@
 ;;; -------------------------------------------------------------------------
 ;;; General stuff
 
-(defn query
+(defn term
   ([type]
      {::type type})
   ([type args]
@@ -110,7 +110,7 @@
   [arglist & body]
   (let [ret (last body)
         arg-replacements (index-args arglist)]
-    `(query :FUNC [(vec (clojure.core/map inc (range ~(clojure.core/count arglist))))
+    `(term :FUNC [(vec (clojure.core/map inc (range ~(clojure.core/count arglist))))
                    ;; TODO - not the best model of scope
                    ~(clojure.walk/postwalk-replace arg-replacements ret)])))
 
@@ -120,17 +120,17 @@
 ;;; -- Compound types --
 (defn make-array
   [& xs]
-  (query :MAKE_ARRAY xs))
+  (term :MAKE_ARRAY xs))
 
 (defn make-obj
   "Takes a map and returns an object. Useful for making maps with terms inside
 such as the maps returned by lambdas passed as arguments to update."
   [m]
-  (query :MAKE_OBJ nil m))
+  (term :MAKE_OBJ nil m))
 
 (defn js
-  ([s] (query :JAVASCRIPT [s]))
-  ([s timeout] (query :JAVASCRIPT [s] {:timeout timeout})))
+  ([s] (term :JAVASCRIPT [s]))
+  ([s timeout] (term :JAVASCRIPT [s] {:timeout timeout})))
 
 ;; TODO - not yet available in 1.12
 #_(defn http
@@ -147,196 +147,196 @@ verify
 depaginate
 auth
 result_format"
-  ([s] (query :HTTP [s]))
-  ([s opts] (query :HTTP [s] opts)))
+  ([s] (term :HTTP [s]))
+  ([s opts] (term :HTTP [s] opts)))
 
 (defn error
-  ([] (query :ERROR))
-  ([s] (query :ERROR [s])))
+  ([] (term :ERROR))
+  ([s] (term :ERROR [s])))
 
 (def implicit-var
   "Returns a reference to the implicit value"
-  (query :IMPLICIT_VAR))
+  (term :IMPLICIT_VAR))
 
 ;;; -- Data Operators --
 (defn db
   [db-name]
-  (query :DB [db-name]))
+  (term :DB [db-name]))
 
 (defn table-default
   ([table-name]
-     (query :TABLE [table-name]))
+     (term :TABLE [table-name]))
   ([table-name use-outdated?]
-     (query :TABLE [table-name] {:use_outdated use-outdated?})))
+     (term :TABLE [table-name] {:use_outdated use-outdated?})))
 
 (defn table
   ([db table-name]
-     (query :TABLE [db table-name]))
+     (term :TABLE [db table-name]))
   ([db table-name use-outdated?]
-     (query :TABLE [db table-name] {:use_outdated use-outdated?})))
+     (term :TABLE [db table-name] {:use_outdated use-outdated?})))
 
 (defn get
   [table k]
   (let [k (name k)]
-    (query :GET [table k])))
+    (term :GET [table k])))
 
 (defn get-all
   ([table xs]
-     (query :GET_ALL (concat [table] xs)))
+     (term :GET_ALL (concat [table] xs)))
   ([table xs index]
-     (query :GET_ALL (concat [table] xs) {:index index})))
+     (term :GET_ALL (concat [table] xs) {:index index})))
 
 ;;; -- DATUM Ops --
 (defn =
   [& args]
-  (query :EQ args))
+  (term :EQ args))
 
 (defn not=
   [& args]
-  (query :NE args))
+  (term :NE args))
 
 (defn <
   [& args]
-  (query :LT args))
+  (term :LT args))
 
 (defn <=
   [& args]
-  (query :LE args))
+  (term :LE args))
 
 (defn >
   [& args]
-  (query :GT args))
+  (term :GT args))
 
 (defn >=
   [& args]
-  (query :GE args))
+  (term :GE args))
 
 (defn not
   [bool]
-  (query :NOT [bool]))
+  (term :NOT [bool]))
 
 (defn +
   "Add two numbers or concatenate two strings"
   [& args]
-  (query :ADD args))
+  (term :ADD args))
 
 (defn -
   [& args]
-  (query :SUB args))
+  (term :SUB args))
 
 (defn *
   [& args]
-  (query :MUL args))
+  (term :MUL args))
 
 ;; Weird stuff happens when we redefine / and use it from another namespace
 (defn div
   [& args]
-  (query :DIV args))
+  (term :DIV args))
 
 (defn mod
   [n1 n2]
-  (query :MOD [n1 n2]))
+  (term :MOD [n1 n2]))
 
 ;;; -- Datum Array Ops --
 (defn append
   [array x]
-  (query :APPEND [array x]))
+  (term :APPEND [array x]))
 
 (defn prepend
   [array x]
-  (query :PREPEND [array x]))
+  (term :PREPEND [array x]))
 
 (defn difference
   [array1 array2]
-  (query :DIFFERENCE [array1 array2]))
+  (term :DIFFERENCE [array1 array2]))
 
 ;;; -- Set Ops --
 ;;; No actual sets on rethinkdb, only arrays
 (defn set-insert
   [array x]
-  (query :SET_INSERT [array x]))
+  (term :SET_INSERT [array x]))
 
 (defn set-intersection
   [array1 array2]
-  (query :SET_INTERSECTION [array1 array2]))
+  (term :SET_INTERSECTION [array1 array2]))
 
 (defn set-union
   [array1 array2]
-  (query :SET_UNION [array1 array2]))
+  (term :SET_UNION [array1 array2]))
 
 (defn set-difference
   [array1 array2]
-  (query :SET_DIFFERENCE [array1 array2]))
+  (term :SET_DIFFERENCE [array1 array2]))
 
 (defn slice
   [sq n1 n2]
-  (query :SLICE [sq n1 n2]))
+  (term :SLICE [sq n1 n2]))
 
 (defn skip
   [sq n]
-  (query :SKIP [sq n]))
+  (term :SKIP [sq n]))
 
 (defn limit
   [sq n]
-  (query :LIMIT [sq n]))
+  (term :LIMIT [sq n]))
 
 (defn indexes-of
   [sq lambda1-or-x]
-  (query :INDEXES_OF [sq lambda1-or-x]))
+  (term :INDEXES_OF [sq lambda1-or-x]))
 
 (defn contains?
   [sq lambda1-or-x]
-  (query :CONTAINS [sq lambda1-or-x]))
+  (term :CONTAINS [sq lambda1-or-x]))
 
 ;;; -- Stream/Object Ops --
 (defn get-field
   "Get a particular field from an object or map that over a sequence"
   [obj-or-sq s]
-  (query :GET_FIELD [obj-or-sq s]))
+  (term :GET_FIELD [obj-or-sq s]))
 
 (defn object
   "Creates a javascript object from k/v pairs - consider simply using a clojure
 map. Usage similar to clojure.core/hash-map"
   [& key-vals]
-  (query :OBJECT key-vals))
+  (term :OBJECT key-vals))
 
 (defn keys
   "Return an array containing the keys of the object"
   [obj]
-  (query :KEYS [obj]))
+  (term :KEYS [obj]))
 
 (defn has-fields?
   "Check whether an object contains all the specified fields or filters a
 sequence so that al objects inside of it contain all the specified fields"
   [obj & pathspecs]
-  (query :HAS_FIELDS (concat [obj] pathspecs)))
+  (term :HAS_FIELDS (concat [obj] pathspecs)))
 
 (defn with-fields
   "(with-fields sq pathspecs..) <=> (pluck (has-fields sq pathspecs..) pathspecs..)"
   [sq & pathspecs]
-  (query :HAS_FIELDS (concat [sq] pathspecs)))
+  (term :HAS_FIELDS (concat [sq] pathspecs)))
 
 (defn pluck
   "Get a subset of an object by selecting some attributes to preserve,
 or map that over a sequence"
   [obj-or-sq & pathspecs]
-  (query :PLUCK (concat [obj-or-sq] pathspecs)))
+  (term :PLUCK (concat [obj-or-sq] pathspecs)))
 
 (defn without
   "Get a subset of an object by selecting some attributes to discard,
 or map that over a sequence"
   [obj-or-sq & pathspecs]
-  (query :WITHOUT (concat [obj-or-sq] pathspecs)))
+  (term :WITHOUT (concat [obj-or-sq] pathspecs)))
 
 (defn merge
   "Merge objects (right-preferential)"
   [& objs]
-  (query :MERGE objs))
+  (term :MERGE objs))
 
 (defn literal
   "Indicates to MERGE to replace the other object rather than merge it"
   [json]
-  (query :LITERAL [json]))
+  (term :LITERAL [json]))
 
 ;;; -- Sequence Ops --
 (defn group
@@ -353,8 +353,8 @@ Examples:
 (group tbl [] :index :type)"
   [sq ks-or-lambda1s & {:keys [index]}]
   (if index
-    (query :GROUP (concat [sq] ks-or-lambda1s) {:index index})
-    (query :GROUP (concat [sq] ks-or-lambda1s))))
+    (term :GROUP (concat [sq] ks-or-lambda1s) {:index index})
+    (term :GROUP (concat [sq] ks-or-lambda1s))))
 
 (defn sum
   "Sums all the elements of a sequence. If called with a field name, sums all
@@ -364,8 +364,8 @@ of the sequence and sums the results, skipping elements of the sequence where
 that function returns nil or a non-existence error."
   ([sq & [k-or-lambda1]]
      (if k-or-lambda1
-       (query :SUM [sq k-or-lambda1])
-       (query :SUM [sq]))))
+       (term :SUM [sq k-or-lambda1])
+       (term :SUM [sq]))))
 
 (defn avg
   "Averages all the elements of a sequence. If called with a field name,
@@ -375,8 +375,8 @@ every element of the sequence and averages the results, skipping elements of the
 sequence where that function returns nil or a non-existence error."
   ([sq & [k-or-lambda1]]
      (if k-or-lambda1
-       (query :AVG [sq k-or-lambda1])
-       (query :AVG [sq]))))
+       (term :AVG [sq k-or-lambda1])
+       (term :AVG [sq]))))
 
 (defn min
   "Finds the minimum of a sequence. If called with a field name, finds the
@@ -386,8 +386,8 @@ element which produced the smallest value, ignoring any elements where the
 function returns nil or produces a non-existence error."
   ([sq & [k-or-lambda1]]
      (if k-or-lambda1
-       (query :MIN [sq k-or-lambda1])
-       (query :MIN [sq]))))
+       (term :MIN [sq k-or-lambda1])
+       (term :MIN [sq]))))
 
 (defn max
   "Finds the maximum of a sequence. If called with a field name, finds the
@@ -397,25 +397,25 @@ element which produced the largest value, ignoring any elements where the
 function returns nil or produces a non-existence error."
   ([sq & [k-or-lambda1]]
      (if k-or-lambda1
-       (query :MAX [sq k-or-lambda1])
-       (query :MAX [sq]))))
+       (term :MAX [sq k-or-lambda1])
+       (term :MAX [sq]))))
 
 (defn between
   "Get all elements of a sequence between two values"
   ([stream-selection lower upper]
-     (query :BETWEEN [stream-selection lower upper]))
+     (term :BETWEEN [stream-selection lower upper]))
   ([stream-selection lower upper index]
-     (query :BETWEEN [stream-selection lower upper] {:index index})))
+     (term :BETWEEN [stream-selection lower upper] {:index index})))
 
 (defn reduce
   ([sq lambda2]
-     (query :REDUCE [sq lambda2]))
+     (term :REDUCE [sq lambda2]))
   ([sq lambda2 base]
-     (query :REDUCE [sq lambda2] {:base base})))
+     (term :REDUCE [sq lambda2] {:base base})))
 
 (defn map
   [sq lambda1]
-  (query :MAP [sq lambda1]))
+  (term :MAP [sq lambda1]))
 
 (defn filter
   "Filter a sequence with either a function or a shortcut object.
@@ -424,47 +424,47 @@ can change the default value by specifying the default optarg. If you
 make the default (error), all errors caught by default will be rethrown
 as if the default did not exist"
   ([sq lambda1-or-obj]
-     (query :FILTER [sq lambda1-or-obj]))
+     (term :FILTER [sq lambda1-or-obj]))
   ([sq lambda1-or-obj default-val]
-     (query :FILTER [sq lambda1-or-obj] {:default default-val})))
+     (term :FILTER [sq lambda1-or-obj] {:default default-val})))
 
 (defn mapcat
   "Map a function over a sequence and then concatenate the results together"
   [sq lambda1]
-  (query :CONCATMAP [sq lambda1]))
+  (term :CONCATMAP [sq lambda1]))
 
 (defn order-by
   "Order a sequence based on one or more attributes"
   [sq & strs-or-orderings]
-  (query :ORDERBY (concat [sq] strs-or-orderings)))
+  (term :ORDERBY (concat [sq] strs-or-orderings)))
 
 (defn distinct
   "Get all distinct elements of a sequence (like uniq)"
   [sq]
-  (query :DISTINCT [sq]))
+  (term :DISTINCT [sq]))
 
 (defn count
   "Count the number of elements in a sequence, or only the elements that match a
 given filter"
   ([sq]
-     (query :COUNT [sq]))
+     (term :COUNT [sq]))
   ([sq lambda1-or-x]
-     (query :COUNT [sq lambda1-or-x])))
+     (term :COUNT [sq lambda1-or-x])))
 
 (defn empty?
   [sq]
-  (query :IS_EMPTY [sq]))
+  (term :IS_EMPTY [sq]))
 
 (defn union
   "Take the union of multiple sequences
  (preserves duplicate elements (use distinct))"
   [& seqs]
-  (query :UNION seqs))
+  (term :UNION seqs))
 
 (defn nth
   "Get the nth element of a sequence"
   [sq n]
-  (query :NTH [sq n]))
+  (term :NTH [sq n]))
 
 ;; Removed in version 1.12 of rethinkdb, use group, map and reduce instead
 #_(defn grouped-map-reduce
@@ -473,9 +473,9 @@ given filter"
 - a function to map over the groups
 - a reduction to apply to each of the groups"
   ([sq lambda1 lambda1-2 lambda2]
-     (query :GROUPED_MAP_REDUCE [sq lambda1 lambda1-2 lambda2]))
+     (term :GROUPED_MAP_REDUCE [sq lambda1 lambda1-2 lambda2]))
   ([sq lambda1 lambda1-2 lambda2 base]
-     (query :GROUPED_MAP_REDUCE [sq lambda1 lambda1-2 lambda2] {:base base})))
+     (term :GROUPED_MAP_REDUCE [sq lambda1 lambda1-2 lambda2] {:base base})))
 
 ;; Removed in version 1.12 of rethinkdb, use group instead
 #_(defn group-by
@@ -493,49 +493,49 @@ At present group-by supports the following operations
               {operation operation}
               operation)
             uppercase-keys)]
-    (query :GROUPBY [sq array operation-obj])))
+    (term :GROUPBY [sq array operation-obj])))
 
 (defn inner-join
   [sq1 sq2 lambda2]
-  (query :INNER_JOIN [sq1 sq2 lambda2]))
+  (term :INNER_JOIN [sq1 sq2 lambda2]))
 
 (defn outer-join
   [sq1 sq2 lambda2]
-  (query :OUTER_JOIN [sq1 sq2 lambda2]))
+  (term :OUTER_JOIN [sq1 sq2 lambda2]))
 
 (defn eq-join
   "An inner-join that does an equality comparison on two attributes"
   ([sq1 str sq2]
-     (query :EQ_JOIN [sq1 str sq2]))
+     (term :EQ_JOIN [sq1 str sq2]))
   ([sq1 str sq2 index]
-     (query :EQ_JOIN [sq1 str sq2] {:index index})))
+     (term :EQ_JOIN [sq1 str sq2] {:index index})))
 
 (defn zip
   [sq]
-  (query :ZIP [sq]))
+  (term :ZIP [sq]))
 
 ;;; -- Array Ops --
 (defn insert-at
   "Insert an element in to an array at a given index"
   [array n x]
-  (query :INSERT_AT [array n x]))
+  (term :INSERT_AT [array n x]))
 
 (defn delete-at
   "Remove an element at a given index from an array"
   ([array n]
-     (query :DELETE_AT [array n]))
+     (term :DELETE_AT [array n]))
   ([array n1 n2]
-     (query :DELETE_AT [array n1 n2])))
+     (term :DELETE_AT [array n1 n2])))
 
 (defn change-at
   "Change the element at a given index of an array"
   [array n x]
-  (query :CHANGE_AT [array n x]))
+  (term :CHANGE_AT [array n x]))
 
 (defn splice-at
   "Splice one array in to another array"
   [array1 n array2]
-  (query :SPLICE_AT [array1 n array2]))
+  (term :SPLICE_AT [array1 n array2]))
 
 ;;; -- Type Ops --
 ;;; Figure out the name of types
@@ -543,12 +543,12 @@ At present group-by supports the following operations
   "Coerces a datum to a named type (eg bool)"
   [x type]
   (let [type (name type)]
-    (query :COERCE_TO [x type])))
+    (term :COERCE_TO [x type])))
 
 (defn type
   "Returns the named type of a datum"
   [x]
-  (query :TYPEOF [x]))
+  (term :TYPEOF [x]))
 
 ;;; -- Write Ops --
 (defn update
@@ -564,8 +564,8 @@ return the new value in :new_val and the old one in old_val"
   [stream-or-single-selection lambda1-or-obj
    & {:as optargs}]
   (if-not optargs
-    (query :UPDATE [stream-or-single-selection lambda1-or-obj])
-    (query :UPDATE [stream-or-single-selection lambda1-or-obj]
+    (term :UPDATE [stream-or-single-selection lambda1-or-obj])
+    (term :UPDATE [stream-or-single-selection lambda1-or-obj]
            (snake-case-keys optargs))))
 
 (defn delete
@@ -577,8 +577,8 @@ Optargs: :durability -> :hard or :soft - Override the table or query's default
                                 get the value you deleted in :old_val"
   [stream-or-single-selection & {:as optargs}]
   (if-not optargs
-    (query :DELETE [stream-or-single-selection])
-    (query :DELETE [stream-or-single-selection]
+    (term :DELETE [stream-or-single-selection])
+    (term :DELETE [stream-or-single-selection]
            (snake-case-keys optargs))))
 
 (defn replace
@@ -590,8 +590,8 @@ Optargs: :non-atomic -> bool
          :return-vals -> bool"
   [stream-or-single-selection lambda1 & {:as optargs}]
   (if-not optargs
-    (query :REPLACE [stream-or-single-selection lambda1])
-    (query :REPLACE [stream-or-single-selection lambda1]
+    (term :REPLACE [stream-or-single-selection lambda1])
+    (term :REPLACE [stream-or-single-selection lambda1]
            (snake-case-keys optargs))))
 
 (defn insert
@@ -605,8 +605,8 @@ Optargs: :upsert -> bool - If true -> overwrite the data if it already exists
                                 get back the row you inserted on the key :nev_val"
   [table obj-or-sq & {:as optargs}]
   (if-not optargs
-    (query :INSERT [table obj-or-sq])
-    (query :INSERT [table obj-or-sq]
+    (term :INSERT [table obj-or-sq])
+    (term :INSERT [table obj-or-sq]
            (snake-case-keys optargs))))
 
 ;;; -- Administrative Ops --
@@ -614,18 +614,18 @@ Optargs: :upsert -> bool - If true -> overwrite the data if it already exists
   "Creates a database with a particular name"
   [dbname]
   (let [dbname (name dbname)]
-    (query :DB_CREATE [dbname])))
+    (term :DB_CREATE [dbname])))
 
 (defn db-drop
   "Drops a database with a particular name"
   [dbname]
   (let [dbname (name dbname)]
-    (query :DB_DROP [dbname])))
+    (term :DB_DROP [dbname])))
 
 (defn db-list
   "Lists all the databases by name"
   []
-  (query :DB_LIST))
+  (term :DB_LIST))
 
 (defn table-create-default
   "Creates a table with a particular name in the default database
@@ -637,8 +637,8 @@ Optargs: :datacenter str
   [tname & {:as optargs}]
   (let [tname (name tname)]
     (if-not optargs
-      (query :TABLE_CREATE [tname])
-      (query :TABLE_CREATE [tname] (snake-case-keys optargs)))))
+      (term :TABLE_CREATE [tname])
+      (term :TABLE_CREATE [tname] (snake-case-keys optargs)))))
 
 (defn table-create
   "Creates a table with a particular name in a particular database
@@ -650,37 +650,37 @@ Optargs: :datacenter str
   [db tname & {:as optargs}]
   (let [tname (name tname)]
     (if-not optargs
-      (query :TABLE_CREATE [db tname])
-      (query :TABLE_CREATE [db tname]
+      (term :TABLE_CREATE [db tname])
+      (term :TABLE_CREATE [db tname]
              (snake-case-keys optargs)))))
 
 (defn table-drop-default
   "Drops a table with a particular name from the default database"
   [tname]
   (let [tname (name tname)]
-    (query :TABLE_DROP [tname])))
+    (term :TABLE_DROP [tname])))
 
 (defn table-drop
   "Drops a table with a particular name from a particular database"
   [db tname]
   (let [tname (name tname)]
-    (query :TABLE_DROP [db tname])))
+    (term :TABLE_DROP [db tname])))
 
 (defn table-list-db
   "Lists all the tables in the default database"
   []
-  (query :TABLE_LIST))
+  (term :TABLE_LIST))
 
 (defn table-list
   "Lists all the tables in a particular database"
   [db]
-  (query :TABLE_LIST [db]))
+  (term :TABLE_LIST [db]))
 
 (defn sync
   "Ensures that previously issued soft-durability writes are complete and
 written to disk"
   [table]
-  (query :SYNC [table]))
+  (term :SYNC [table]))
 
 ;;; -- Secondary indexes Ops --
 (defn index-create
@@ -688,20 +688,20 @@ written to disk"
 Optarg: multi -> bool"
   ([table idx-name lambda1]
      (let [idx-name (name idx-name)]
-       (query :INDEX_CREATE [table idx-name lambda1])))
+       (term :INDEX_CREATE [table idx-name lambda1])))
   ([table idx-name lambda1 multi]
      (let [idx-name (name idx-name)]
-       (query :INDEX_CREATE [table idx-name lambda1] {:multi multi}))))
+       (term :INDEX_CREATE [table idx-name lambda1] {:multi multi}))))
 
 (defn index-drop
   "Drops a secondary index with a particular name from the specified table"
   [table idx-name]
-  (query :INDEX_DROP [table idx-name]))
+  (term :INDEX_DROP [table idx-name]))
 
 (defn index-list
   "Lists all secondary indexes on a particular table"
   [table]
-  (query :INDEX_LIST [table]))
+  (term :INDEX_LIST [table]))
 
 (defn index-status
   "Gets information about whether or not a set of indexes are ready to be
@@ -711,7 +711,7 @@ accessed. Returns a list of objects (clojure maps) that look like this:
   \"blocks_processed\" number
   \"blocks-total\" number}"
   [table & idx-names]
-  (query :INDEX_STATUS (concat [table] idx-names)))
+  (term :INDEX_STATUS (concat [table] idx-names)))
 
 (defn index-wait
   "Blocks until a set of indexes are ready to be accessed. Returns the same
@@ -721,70 +721,70 @@ values as index-status; a list of objects (clojure maps) that look like:
   \"blocks_processed\" number
   \"blocks-total\" number}"
   [table & idx-names]
-  (query :INDEX_WAIT (concat [table] idx-names)))
+  (term :INDEX_WAIT (concat [table] idx-names)))
 
 ;;; -- Control Operators --
 (defn funcall
   "Calls a function on data"
   [lambda-n & xs]
-  (query :FUNCALL (concat [lambda-n] xs)))
+  (term :FUNCALL (concat [lambda-n] xs)))
 
 (defn branch
   "An if statement"
   [bool then else]
-  (query :BRANCH [bool then else]))
+  (term :BRANCH [bool then else]))
 
 (defn any
   "A short circuiting or that returns a boolean"
   [& bools]
-  (query :ANY bools))
+  (term :ANY bools))
 
 (defn all
   "Returns true if all of its arguments are true (short-circuits)"
   [& bools]
-  (query :ALL bools))
+  (term :ALL bools))
 
 (defn foreach
   "Calls its function with each entry in the sequence and executes the array of
 terms that function returns"
   [sq lambda1]
-  (query :FOREACH [sq lambda1]))
+  (term :FOREACH [sq lambda1]))
 
 ;;; -- Special Ops --
 (defn asc
   "Indicates to order-by that this attribute is to be sorted in ascending order"
   [k]
-  (query :ASC [k]))
+  (term :ASC [k]))
 
 (defn desc
   "Indicates to order-by that this attribute is to be sorted in descending order"
   [k]
-  (query :DESC [k]))
+  (term :DESC [k]))
 
 (defn info
   "Gets info about anything. INFO is most commonly called on tables"
   [x]
-  (query :INFO [x]))
+  (term :INFO [x]))
 
 (defn match
   "(match a b) returns a match object if the string \"a\" matches the regexp #\"b\""
   [s re]
-  (query :MATCH [s (str re)]))
+  (term :MATCH [s (str re)]))
 
 (defn upcase
   "Change a string to uppercase"
   [s]
-  (query :UPCASE [s]))
+  (term :UPCASE [s]))
 
 (defn downcase
   "Change a string to downcase"
   [s]
-  (query :DOWNCASE [s]))
+  (term :DOWNCASE [s]))
 
 (defn sample
   "Select a number of elements from sequence with uniform distribution"
   [sq n]
-  (query :SAMPLE [sq n]))
+  (term :SAMPLE [sq n]))
 
 (defn default
   "Evaluates its first argument. If that argument returns NULL or throws an error
@@ -792,97 +792,97 @@ related to the absence of an expected value, default will either return its
 second argument or execute it if it's a function. If the second argument is a
 function it will be passed either the text of the error or NULL as its argument"
   [to-check lambda1-or-x]
-  (query :DEFAULT [to-check lambda1-or-x]))
+  (term :DEFAULT [to-check lambda1-or-x]))
 
 (defn json
   "Parses its first argument as a json string and returns it as a datum"
   [s]
-  (query :JSON [s]))
+  (term :JSON [s]))
 
 ;;; -- Date/Time Ops --
 
 (defn iso8601
   "Parses its first arguments as an ISO 8601 time and returns it as a datum"
   [s]
-  (query :ISO8601 [s]))
+  (term :ISO8601 [s]))
 
 (defn ->iso8601
   "Prints a time as an ISO 8601 time"
   [t]
-  (query :TO_ISO8601 [t]))
+  (term :TO_ISO8601 [t]))
 
 (defn epoch-time
   "Returns a time given seconds since epoch in UTC"
   [n]
-  (query :EPOCH_TIME [n]))
+  (term :EPOCH_TIME [n]))
 
 (defn ->epoch-time
   "Returns seconds since epoch in UTC given a time"
   [t]
-  (query :TO_EPOCH_TIME [t]))
+  (term :TO_EPOCH_TIME [t]))
 
 (defn now
   "The time the query was received by the server"
   []
-  (query :NOW))
+  (term :NOW))
 
 (defn in-timezone
   "Puts a time into an ISO 8601 timezone"
   [t s]
-  (query :IN_TIMEZONE [t s]))
+  (term :IN_TIMEZONE [t s]))
 
 (defn during
   "(during a b c) returns whether a is in the range [b, c)
 a b and c are times"
   [a b c]
-  (query :DURING [a b c]))
+  (term :DURING [a b c]))
 
 (defn date
   "Retrieves the date portion of a time"
   [t]
-  (query :DATE [t]))
+  (term :DATE [t]))
 
 (defn time-of-day
   "(time-of-day x) == (- (date x) x)"
   [t]
-  (query :TIME_OF_DAY [t]))
+  (term :TIME_OF_DAY [t]))
 
 (defn timezone
   [t]
-  (query :TIMEZONE [t]))
+  (term :TIMEZONE [t]))
 
 ;;; -- Accessing time components --
 (defn year
   [t]
-  (query :YEAR [t]))
+  (term :YEAR [t]))
 
 (defn month
   [t]
-  (query :MONTH [t]))
+  (term :MONTH [t]))
 
 (defn day
   [t]
-  (query :DAY [t]))
+  (term :DAY [t]))
 
 (defn day-of-week
   [t]
-  (query :DAY_OF_WEEK [t]))
+  (term :DAY_OF_WEEK [t]))
 
 (defn day-of-year
   [t]
-  (query :DAY_OF_YEAR [t]))
+  (term :DAY_OF_YEAR [t]))
 
 (defn hours
   [t]
-  (query :HOURS [t]))
+  (term :HOURS [t]))
 
 (defn minutes
   [t]
-  (query :MINUTES [t]))
+  (term :MINUTES [t]))
 
 (defn seconds
   [t]
-  (query :SECONDS [t]))
+  (term :SECONDS [t]))
 
 ;;; -- Date construction --
 ;;; Apparently timezone is obligatory contrary to what the .proto docs say
@@ -890,36 +890,36 @@ a b and c are times"
   "Construct a time from a date and optional timezone or a date+time and optional
 timezone"
   ([y m d]
-     (query :TIME [y m d "+00:00"]))
+     (term :TIME [y m d "+00:00"]))
   ([y m d tz]
-     (query :TIME [y m d tz]))
+     (term :TIME [y m d tz]))
   ([y m d h min s]
-     (query :TIME [y m d h min s "+00:00"]))
+     (term :TIME [y m d h min s "+00:00"]))
   ([y m d h min s tz]
-     (query :TIME [y m d h min s tz])))
+     (term :TIME [y m d h min s tz])))
 
 ;;; -- Constants for ISO 8601 days of the week --
-(def monday    (query :MONDAY))
-(def tuesday   (query :TUESDAY))
-(def wednesday (query :WEDNESDAY))
-(def thursday  (query :THURSDAY))
-(def friday    (query :FRIDAY))
-(def saturday  (query :SATURDAY))
-(def sunday    (query :SUNDAY))
+(def monday    (term :MONDAY))
+(def tuesday   (term :TUESDAY))
+(def wednesday (term :WEDNESDAY))
+(def thursday  (term :THURSDAY))
+(def friday    (term :FRIDAY))
+(def saturday  (term :SATURDAY))
+(def sunday    (term :SUNDAY))
 
 ;;; -- Constants for ISO 8601 months --
-(def january   (query :JANUARY))
-(def february  (query :FEBRUARY))
-(def march     (query :MARCH))
-(def april     (query :APRIL))
-(def may       (query :MAY))
-(def june      (query :JUNE))
-(def july      (query :JULY))
-(def august    (query :AUGUST))
-(def september (query :SEPTEMBER))
-(def october   (query :OCTOBER))
-(def november  (query :NOVEMBER))
-(def december  (query :DECEMBER))
+(def january   (term :JANUARY))
+(def february  (term :FEBRUARY))
+(def march     (term :MARCH))
+(def april     (term :APRIL))
+(def may       (term :MAY))
+(def june      (term :JUNE))
+(def july      (term :JULY))
+(def august    (term :AUGUST))
+(def september (term :SEPTEMBER))
+(def october   (term :OCTOBER))
+(def november  (term :NOVEMBER))
+(def december  (term :DECEMBER))
 
 ;;; -------------------------------------------------------------------------
 ;;; Extra stuff
@@ -930,25 +930,25 @@ timezone"
 (split s \" \") splits on spaces only
 (split s \" \" 5) splits on spaces with at most 5 results
 (split s nil 5) splits on whitespace with at most 5 results"
-  ([s] (query :SPLIT [s]))
-  ([s splitter] (query :SPLIT [s splitter]))
-  ([s splitter result-count] (query :SPLIT [s splitter result-count])))
+  ([s] (term :SPLIT [s]))
+  ([s splitter] (term :SPLIT [s splitter]))
+  ([s splitter result-count] (term :SPLIT [s splitter result-count])))
 
 (defn ungroup
   [grouped-data]
-  (query :UNGROUP [grouped-data]))
+  (term :UNGROUP [grouped-data]))
 
 ;; TODO - not yet available in 1.12
 #_(defn random
   "Takes a range of numbers and returns a random number within the range"
   [from to & [float?]]
   (let [float? (boolean float?)])
-  (query :RANDOM [from to] {:float float?}))
+  (term :RANDOM [from to] {:float float?}))
 
 ;; TODO - not yet available in 1.12
 #_(defn changes
   [table]
-  (query :CHANGES [table]))
+  (term :CHANGES [table]))
 
 ;;; -------------------------------------------------------------------------
 ;;; Custom Helpers
