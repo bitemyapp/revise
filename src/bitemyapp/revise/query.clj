@@ -8,7 +8,28 @@
                             min max sync])
   (:require [bitemyapp.revise.utils.case :refer [snake-case-keys
                                                  uppercase-keys]]
+            [bitemyapp.revise.ql2 :refer [rethinkdb]]
+            [clojure.set :refer [difference]]
             clojure.walk))
+
+(def query-types
+  (-> (get-in rethinkdb [:Query :QueryType])
+      (clojure.core/keys)
+      (set)))
+
+(def global-opts #{:db :use_outdated :noreply :durability :profile})
+
+(defn query
+  ([type]
+   {:pre [(query-types type)]}
+   [(get-in rethinkdb [:Query :QueryType type])])
+  ([type term opts]
+   {:pre [(query-types type)
+          (= #{} (difference (set (keys opts))
+                             global-opts))]}
+   [(get-in rethinkdb [:Query :QueryType type])
+    term
+    opts]))
 
 (defn datum?
   [m]

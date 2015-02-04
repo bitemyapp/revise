@@ -4,6 +4,21 @@
             [bitemyapp.revise.ql2 :refer [rethinkdb]]
             [bitemyapp.revise.query :as r]))
 
+(defn compile-query
+  "A query is a vector that bitemyapp.revise.query/query returns"
+  [query]
+  ({:pre [(vector? query)]})
+  (let [[type term opts] query
+        cnt (count query)]
+    (cond (= 1 cnt)
+          (js/generate-string [type])
+          (= 3 cnt)
+          nil
+          :else
+          (throw (ex-info (pr-str
+                           "Wrong number of elements in query. Need 1 or 3"
+                           query) {:query query})))))
+
 (def primitives
   #{:R_STR :R_NUM :R_NULL :R_BOOL})
 

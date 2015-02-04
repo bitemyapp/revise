@@ -2,13 +2,10 @@
   "Connection shenanigans"
   (:refer-clojure :exclude [send])
   (:import [java.io DataInputStream DataOutputStream]
-           [java.net Socket ConnectException]
-           [flatland.protobuf PersistentProtocolBufferMap])
-  (:require [flatland.protobuf.core :as pb]
-            [bitemyapp.revise.utils.bytes :refer [to-little-endian-byte-32
+           [java.net Socket ConnectException])
+  (:require [bitemyapp.revise.utils.bytes :refer [to-little-endian-byte-32
                                                   parse-little-endian-32
                                                   concat-byte-arrays]]
-            [bitemyapp.revise.protodefs :refer [Query Response]]
             [bitemyapp.revise.response :refer [inflate]]
             [clojure.core.async :as async :refer [chan <!! >!!]]
             [clojure.core.async.impl.protocols :as async-impl]))
@@ -92,7 +89,8 @@
     (let [size (parse-little-endian-32 size)
           resp (byte-array size)]
       (.read in resp 0 size)
-      (pb/protobuf-load Response resp))))
+      ;(pb/protobuf-load Response resp)
+      )))
 
 (defn deliver-result [conn result]
   (let [token (:token result)
